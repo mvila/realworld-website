@@ -14,9 +14,9 @@ export class User extends Entity {
 
   @secondaryIdentifier('number') githubId!: number;
 
-  @expose({get: 'self'}) @secondaryIdentifier('string') username!: string;
+  @expose({get: 'self'}) @attribute('string') username!: string;
 
-  @secondaryIdentifier('string') email!: string;
+  @attribute('string') email!: string;
 
   @attribute('string') name!: string;
 
