@@ -1,6 +1,7 @@
 import {consume, expose} from '@layr/component';
 import {secondaryIdentifier, attribute, method} from '@layr/storable';
 import {role} from '@layr/with-roles';
+import isEqual from 'lodash/isEqual';
 
 import {Entity} from './entity';
 import {GitHub} from './github';
@@ -17,7 +18,11 @@ export class User extends Entity {
 
   @secondaryIdentifier('string') email!: string;
 
+  @attribute('string') name!: string;
+
   @expose({get: 'self'}) @attribute('string') avatarURL!: string;
+
+  @attribute() githubData!: any;
 
   @role('creator') creatorRoleResolver() {
     return this.isNew();
@@ -39,43 +44,21 @@ export class User extends Entity {
 
     const accessToken = await GitHub.fetchAccessToken({code, state});
 
-    const [userData, emailsData] = await Promise.all([
-      GitHub.fetch('/user', {accessToken}),
-      GitHub.fetch('/user/emails', {accessToken})
-    ]);
-
-    const {id: githubId, login: username, avatar_url: avatarURL} = userData;
-
-    let email: string | undefined;
-
-    for (const {email: email_, primary, verified} of emailsData) {
-      if (primary && verified) {
-        email = email_;
-        break;
-      }
-    }
-
-    if (email === undefined) {
-      throw Object.assign(new Error('Primary email not found'), {
-        displayMessage: `Couldn't get your email address from GitHub. Please make sure you have a verified primary address in your GitHub account`
-      });
-    }
+    const {githubId, username, email, name, avatarURL, githubData} = await GitHub.fetchUser({
+      accessToken
+    });
 
     let user = await this.fork()
       .detach()
-      .get(
-        {githubId},
-        {githubId: true, username: true, email: true, avatarURL: true},
-        {throwIfMissing: false}
-      );
+      .get({githubId}, {githubData: true}, {throwIfMissing: false});
 
     if (user !== undefined) {
-      if (user.username !== username || user.email !== email || user.avatarURL !== avatarURL) {
-        Object.assign(user, {username, email, avatarURL});
+      if (!isEqual(githubData, user.githubData)) {
+        Object.assign(user, {username, email, name, avatarURL, githubData});
         await user.save();
       }
     } else {
-      user = new this({githubId, username, email, avatarURL});
+      user = new this({githubId, username, email, name, avatarURL, githubData});
       await user.save();
     }
 

@@ -23,6 +23,38 @@ if (!githubPersonalAccessToken) {
 }
 
 export class GitHub extends Component {
+  static async fetchUser({accessToken}: {accessToken: string}) {
+    const [userData, emailsData] = await Promise.all([
+      GitHub.fetch('/user', {accessToken}),
+      GitHub.fetch('/user/emails', {accessToken})
+    ]);
+
+    const githubData = {user: userData, emails: emailsData};
+
+    let {id: githubId, login: username, name, avatar_url: avatarURL} = userData;
+
+    if (!name) {
+      name = '';
+    }
+
+    let email: string | undefined;
+
+    for (const {email: email_, primary, verified} of emailsData) {
+      if (primary && verified) {
+        email = email_;
+        break;
+      }
+    }
+
+    if (email === undefined) {
+      throw Object.assign(new Error('Primary email not found'), {
+        displayMessage: `Couldn't get your email address from GitHub. Please make sure you have a verified primary address in your GitHub account`
+      });
+    }
+
+    return {githubId, username, email, name, avatarURL, githubData};
+  }
+
   static async fetch(
     path: string,
     {method = 'GET', body, accessToken}: {method?: string; body?: any; accessToken?: string} = {}
