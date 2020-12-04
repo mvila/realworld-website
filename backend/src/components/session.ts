@@ -27,7 +27,7 @@ export class Session extends Component {
 
   static async initialize() {
     if (this.token !== undefined) {
-      this.user = await this.getUser({});
+      this.user = await this.getUser({githubId: true, isAdmin: true});
     }
   }
 

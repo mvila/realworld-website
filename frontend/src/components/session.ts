@@ -25,7 +25,7 @@ export const getSession = (Base: typeof BackendSession) => {
 
     static async loadUser() {
       if (this.token !== undefined) {
-        this.user = await this.getUser({username: true, avatarURL: true});
+        this.user = await this.getUser({username: true, avatarURL: true, isAdmin: true});
       }
     }
   }

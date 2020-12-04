@@ -25,8 +25,8 @@ if (!githubPersonalAccessToken) {
 export class GitHub extends Component {
   static async fetchUser({accessToken}: {accessToken: string}) {
     const [userData, emailsData] = await Promise.all([
-      GitHub.fetch('/user', {accessToken}),
-      GitHub.fetch('/user/emails', {accessToken})
+      this.fetch('/user', {accessToken}),
+      this.fetch('/user/emails', {accessToken})
     ]);
 
     const githubData = {user: userData, emails: emailsData};
@@ -55,9 +55,63 @@ export class GitHub extends Component {
     return {githubId, username, email, name, avatarURL, githubData};
   }
 
+  static async fetchRepository({owner, name}: {owner: string; name: string}) {
+    let githubData;
+
+    try {
+      githubData = await this.fetch(`/repos/${owner}/${name}`);
+    } catch (error) {
+      if (error.status === 404) {
+        throw Object.assign(new Error('Repository not found'), {
+          displayMessage: `The specified repository doesn't exist.`
+        });
+      }
+
+      throw error;
+    }
+
+    const {
+      stargazers_count: numberOfStars,
+      owner: {id: ownerId}
+    } = githubData;
+
+    return {numberOfStars, ownerId, githubData};
+  }
+
+  static async findRepositoryContributor({
+    owner,
+    name,
+    userId
+  }: {
+    owner: string;
+    name: string;
+    userId: number;
+  }) {
+    const contributors = await this.fetch(`/repos/${owner}/${name}/contributors?per_page=100`);
+
+    for (const contributor of contributors) {
+      if (contributor.id === userId) {
+        return {githubData: contributor};
+      }
+    }
+
+    if (contributors.length === 100) {
+      throw Object.assign(new Error('Cannot fetch more than 100 contributors'), {
+        displayMessage:
+          'The specified repository have a lot of contributors and we are currently unable to fetch them all.'
+      });
+    }
+
+    return undefined;
+  }
+
   static async fetch(
     path: string,
-    {method = 'GET', body, accessToken}: {method?: string; body?: any; accessToken?: string} = {}
+    {
+      method = 'GET',
+      body,
+      accessToken = githubPersonalAccessToken
+    }: {method?: string; body?: any; accessToken?: string} = {}
   ) {
     const response = await fetch(GITHUB_API_BASE_URL + path, {
       method,
@@ -74,10 +128,13 @@ export class GitHub extends Component {
     const expectedStatus = method === 'POST' ? 201 : 200;
 
     if (response.status !== expectedStatus) {
-      throw new Error(
-        `An error occurred while fetching the GitHub API (HTTP status: ${
-          response.status
-        }, result: ${JSON.stringify(result)}).`
+      throw Object.assign(
+        new Error(
+          `An error occurred while fetching the GitHub API (HTTP status: ${
+            response.status
+          }, result: ${JSON.stringify(result)}).`
+        ),
+        {status: response.status}
       );
     }
 

@@ -13,12 +13,16 @@ export class Entity extends WithRoles(Storable(Component)) {
 
   @attribute('Date?') updatedAt?: Date;
 
+  @role('guest') static guestRoleResolver() {
+    return this.Session.user === undefined;
+  }
+
   @role('user') static userRoleResolver() {
     return this.Session.user !== undefined;
   }
 
-  @role('guest') static guestRoleResolver() {
-    return !this.resolveRole('user');
+  @role('admin') static adminRoleResolver() {
+    return this.Session.user?.isAdmin === true;
   }
 
   async beforeSave(attributeSelector: AttributeSelector) {

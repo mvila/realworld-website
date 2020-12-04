@@ -1,11 +1,14 @@
 import {consume} from '@layr/component';
 import {Routable, route} from '@layr/routable';
-import React from 'react';
+import {Fragment} from 'react';
+import {jsx} from '@emotion/react';
 import {view, useAsyncCall} from '@layr/react-integration';
+import {DropdownMenu} from '@emotion-kit/react';
 
 import type {User as BackendUser} from '../../../backend/src/components/user';
 import type {Session} from './session';
 import type {Home} from './home';
+import type {Common} from './common';
 
 const githubClientId = process.env.GITHUB_CLIENT_ID;
 
@@ -19,22 +22,69 @@ export const getUser = (Base: typeof BackendUser) => {
 
     @consume() static Session: typeof Session;
     @consume() static Home: typeof Home;
+    @consume() static Common: typeof Common;
 
-    @route('/sign-in') @view() static SignIn() {
-      const {Session, Home} = this;
+    @view() Menu() {
+      return (
+        <DropdownMenu
+          items={[
+            {
+              label: () => (
+                <>
+                  Signed in as <strong>{this.username}</strong>
+                </>
+              ),
+              onClick: () => {
+                window.open(`https://github.com/${this.username}`, '_blank');
+              }
+            },
+            {type: 'divider'},
+            {
+              label: 'Sign out',
+              onClick: () => {
+                this.constructor.SignOut.navigate();
+              }
+            }
+          ]}
+          alignment="right"
+        >
+          {({open}) => (
+            <img
+              src={this.avatarURL}
+              alt="User menu"
+              onClick={open}
+              css={{
+                position: 'relative',
+                top: '-3px',
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'white',
+                cursor: 'pointer'
+              }}
+            />
+          )}
+        </DropdownMenu>
+      );
+    }
 
-      if (Session.user !== undefined) {
-        Home.Main.redirect(undefined, {defer: true});
+    @route('/sign-in\\?:redirectURL') @view() static SignIn({redirectURL}: {redirectURL?: string}) {
+      const {Common} = this;
+
+      return Common.ensureGuest(() => {
+        const key = ((Math.random() * Math.pow(36, 6)) | 0).toString(36);
+        const encodedState = window.btoa(JSON.stringify({key, redirectURL}));
+
+        window.sessionStorage.setItem('oAuthState', encodedState);
+
+        window.location.replace(
+          `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=user:email&state=${encodeURIComponent(
+            encodedState
+          )}`
+        );
+
         return null;
-      }
-
-      const oAuthState = ((Math.random() * Math.pow(36, 6)) | 0).toString(36);
-
-      window.sessionStorage.setItem('oAuthState', oAuthState);
-
-      const url = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&scope=user:email&state=${oAuthState}`;
-      window.location.replace(url);
-      return null;
+      });
     }
 
     @route('/oauth/callback\\?:code&:state&:error') @view() static OAuthCallback({
@@ -42,36 +92,58 @@ export const getUser = (Base: typeof BackendUser) => {
       state,
       error
     }: {code?: string; state?: string; error?: string} = {}) {
-      const {Home} = this;
+      const {Home, Common} = this;
 
-      const [isSigningIn, signingInError] = useAsyncCall(async () => {
-        const savedState = window.sessionStorage.getItem('oAuthState');
-        window.sessionStorage.removeItem('oAuthState');
+      return Common.ensureGuest(() => {
+        const [isSigningIn, signingInError] = useAsyncCall(async () => {
+          const savedState = window.sessionStorage.getItem('oAuthState');
+          window.sessionStorage.removeItem('oAuthState');
 
-        if (!code || state !== savedState || error) {
-          throw new Error('Authentication failed');
+          if (!code || state !== savedState || error) {
+            throw new Error('Authentication failed');
+          }
+
+          let decodedState;
+
+          try {
+            decodedState = JSON.parse(window.atob(state));
+          } catch (error) {
+            throw new Error('An error occurred while decoding the oAuth state');
+          }
+
+          await this.signIn({code, state});
+
+          if (decodedState.redirectURL !== undefined) {
+            this.getRouter().reload(decodedState.redirectURL);
+          } else {
+            Home.Main.reload();
+          }
+        });
+
+        if (isSigningIn) {
+          return null;
         }
 
-        await this.signIn({code, state});
-        Home.Main.reload();
-      });
+        if (signingInError) {
+          return (
+            <Common.ErrorLayout>
+              Sorry, an error occurred while signing in to GitHub.
+            </Common.ErrorLayout>
+          );
+        }
 
-      if (isSigningIn) {
         return null;
-      }
-
-      if (signingInError) {
-        return <div>Authentication failed!</div>;
-      }
-
-      return null;
+      });
     }
 
-    @route('/sign-out') static signOut() {
+    @route('/sign-out') @view() static SignOut() {
       const {Session, Home} = this;
 
       Session.token = undefined;
+
       Home.Main.reload();
+
+      return null;
     }
   }
 

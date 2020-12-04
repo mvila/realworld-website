@@ -5,6 +5,8 @@
     "module": "CommonJS",
     "lib": ["ES2018", "DOM"],
     "jsx": "react",
+    "jsxFactory": "jsx",
+    "jsxFragmentFactory": "Fragment",
     "sourceMap": true,
     "importHelpers": true,
     "strict": true,

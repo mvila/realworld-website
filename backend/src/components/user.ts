@@ -4,7 +4,7 @@ import {role} from '@layr/with-roles';
 import isEqual from 'lodash/isEqual';
 
 import {Entity} from './entity';
-import {GitHub} from './github';
+import type {GitHub} from './github';
 
 @expose({get: {call: true}, prototype: {load: {call: true}, save: {call: 'self'}}})
 export class User extends Entity {
@@ -24,9 +24,9 @@ export class User extends Entity {
 
   @attribute() githubData!: any;
 
-  @role('creator') creatorRoleResolver() {
-    return this.isNew();
-  }
+  @expose({get: ['self', 'admin'], set: 'admin'})
+  @attribute('boolean')
+  isAdmin = false;
 
   @role('self') selfRoleResolver() {
     return this === this.constructor.Session.user;

@@ -1,5 +1,7 @@
-import React from 'react';
 import ReactDOM from 'react-dom';
+import {jsx} from '@emotion/react';
+import {EmotionStarter} from '@emotion-starter/react';
+import {EmotionKit} from '@emotion-kit/react';
 
 import {getApplication} from './components/application';
 
@@ -21,7 +23,18 @@ if (!backendURL) {
 
     await Application.Session.loadUser();
 
-    content = <Application.Root />;
+    content = (
+      <EmotionStarter
+        mode={'dark'}
+        theme={{
+          fontFamilies: {body: "'Open Sans', sans-serif", heading: "'Open Sans', sans-serif"}
+        }}
+      >
+        <EmotionKit>
+          <Application.Root />
+        </EmotionKit>
+      </EmotionStarter>
+    );
   } catch (err) {
     console.error(err);
 
