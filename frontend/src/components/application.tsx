@@ -109,7 +109,7 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
                       {
                         label: 'Review submissions',
                         onClick: () => {
-                          Implementation.Review.navigate();
+                          Implementation.ReviewList.navigate();
                         }
                       }
                     ]}
