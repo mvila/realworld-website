@@ -4,7 +4,7 @@ import {Fragment, useMemo} from 'react';
 import {view, useDelay} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Button} from '@emotion-starter/react';
-import {ErrorIcon} from '@emotion-kit/react';
+import {Box, ErrorIcon} from '@emotion-kit/react';
 
 import type {Home} from './home';
 import type {User} from './user';
@@ -63,21 +63,11 @@ export class Common extends Routable(Component) {
     width?: number;
     children: React.ReactNode;
   }) {
-    const theme = useTheme();
-
     return (
-      <div
-        css={{
-          width,
-          margin: '4rem auto 0 auto',
-          padding: '2rem',
-          border: `1px solid ${theme.colors.border.normal}`,
-          borderRadius: theme.radii.normal
-        }}
-      >
+      <Box css={{width, margin: '3rem auto 0 auto', padding: '2rem'}}>
         <h3 css={{marginBottom: '2rem', lineHeight: 1}}>{title}</h3>
         {children}
-      </div>
+      </Box>
     );
   }
 
@@ -128,16 +118,7 @@ export class Common extends Routable(Component) {
     const message = error?.displayMessage || 'Sorry, an error occurred.';
 
     return (
-      <div
-        role="alert"
-        className={className}
-        css={{
-          marginBottom: '2rem',
-          padding: '.5rem 1rem',
-          border: `1px solid ${theme.colors.negative.muted}`,
-          borderRadius: theme.radii.normal
-        }}
-      >
+      <Box className={className} css={{marginBottom: '2rem', padding: '.5rem 1rem'}}>
         <div css={{color: theme.colors.negative.normal}}>{message}</div>
         {onRetry && (
           <>
@@ -147,7 +128,7 @@ export class Common extends Routable(Component) {
             </div>
           </>
         )}
-      </div>
+      </Box>
     );
   }
 

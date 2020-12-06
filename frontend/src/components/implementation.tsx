@@ -4,15 +4,19 @@ import {useMemo, useCallback} from 'react';
 import {view, useAsyncCallback, useAsyncMemo} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Input, Select, Button} from '@emotion-starter/react';
-import {LaunchIcon} from '@emotion-kit/react';
+import {Box, LaunchIcon} from '@emotion-kit/react';
 import compact from 'lodash/compact';
 import {formatDistanceToNowStrict} from 'date-fns';
+import numeral from 'numeral';
 
-import type {Implementation as BackendImplementation} from '../../../backend/src/components/implementation';
+import type {
+  Implementation as BackendImplementation,
+  ImplementationCategory
+} from '../../../backend/src/components/implementation';
 import type {Home} from './home';
 import type {Common} from './common';
 
-const categories = {
+export const categories = {
   frontend: {label: 'Frontend'},
   backend: {label: 'Backend'},
   fullstack: {label: 'Fullstack'}
@@ -40,13 +44,34 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
           []
         );
 
+        const [handleSubmit, , , hasBeenSubmitted] = useAsyncCallback(async () => {
+          await implementation.submit();
+
+          return true;
+        });
+
+        if (hasBeenSubmitted) {
+          return (
+            <Common.Dialog title={'Thank you!'}>
+              <p>Your submission has been recorded. We will review it shortly.</p>
+              <Common.ButtonBar>
+                <Button
+                  onClick={() => {
+                    Home.Main.navigate();
+                  }}
+                  color="primary"
+                >
+                  Okay
+                </Button>
+              </Common.ButtonBar>
+            </Common.Dialog>
+          );
+        }
+
         return (
           <implementation.Form
             title="Submit an Implementation"
-            onSubmit={async () => {
-              await implementation.submit();
-              Home.Main.navigate();
-            }}
+            onSubmit={handleSubmit}
             onCancel={async () => {
               Home.Main.navigate();
             }}
@@ -63,7 +88,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
       onCancel
     }: {
       title: string;
-      onSubmit?: () => Promise<void>;
+      onSubmit?: () => Promise<any>;
       onApprove?: () => Promise<void>;
       onReject?: () => Promise<void>;
       onCancel: () => Promise<void>;
@@ -99,7 +124,11 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
       const isBusy = isSubmitting || isApproving || isRejecting || isCanceling;
       const error = submitError || approveError || rejectError || cancelError;
 
-      if (!isBusy && this.libraries[this.libraries.length - 1] !== '') {
+      if (isBusy) {
+        return <Common.LoadingSpinner />;
+      }
+
+      if (this.libraries[this.libraries.length - 1] !== '') {
         this.libraries = [...this.libraries, ''];
       }
 
@@ -121,143 +150,138 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
       return (
         <Common.Dialog title={title}>
-          {!isBusy && (
-            <form
-              onSubmit={
-                onSubmit
-                  ? (event) => {
-                      event.preventDefault();
-                      handleSubmit();
-                    }
-                  : undefined
-              }
-              autoComplete="off"
-            >
-              {error && <Common.ErrorMessage error={error} />}
+          <form
+            onSubmit={
+              onSubmit
+                ? (event) => {
+                    event.preventDefault();
+                    handleSubmit();
+                  }
+                : undefined
+            }
+            autoComplete="off"
+          >
+            {error && <Common.ErrorMessage error={error} />}
 
+            <div css={controlStyle}>
+              <label htmlFor="repositoryURL" css={labelStyle}>
+                Repository URL
+              </label>
+              <div css={{display: 'flex', alignItems: 'center'}}>
+                <Input
+                  id="repositoryURL"
+                  value={this.repositoryURL}
+                  onChange={(event) => {
+                    this.repositoryURL = event.target.value;
+                  }}
+                  placeholder="https://github.com/owner/repository"
+                  readOnly={!this.isNew()}
+                  required
+                  autoFocus={this.isNew()}
+                  css={{width: '100%'}}
+                />
+                <OpenURLButton url={this.repositoryURL} css={{marginLeft: '.5rem'}} />
+              </div>
+            </div>
+
+            <div css={{display: 'flex'}}>
               <div css={controlStyle}>
-                <label htmlFor="repositoryURL" css={labelStyle}>
-                  Repository URL
+                <label htmlFor="category" css={labelStyle}>
+                  Category
                 </label>
-                <div css={{display: 'flex', alignItems: 'center'}}>
-                  <Input
-                    id="repositoryURL"
-                    value={this.repositoryURL}
-                    onChange={(event) => {
-                      this.repositoryURL = event.target.value;
-                    }}
-                    placeholder="https://github.com/owner/repository"
-                    readOnly={!this.isNew()}
-                    required
-                    autoFocus={this.isNew()}
-                    css={{width: '100%'}}
-                  />
-                  <OpenURLButton url={this.repositoryURL} css={{marginLeft: '.5rem'}} />
-                </div>
+                <Select
+                  id="category"
+                  value={this.category}
+                  onChange={(event) => {
+                    this.category = event.target.value as ImplementationCategory;
+                  }}
+                  required
+                  css={{width: 200}}
+                >
+                  {Object.entries(categories).map(([value, {label}]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
-              <div css={{display: 'flex'}}>
-                <div css={controlStyle}>
-                  <label htmlFor="category" css={labelStyle}>
-                    Category
-                  </label>
-                  <Select
-                    id="category"
-                    value={this.category}
-                    onChange={(event) => {
-                      this.category = event.target.value;
-                    }}
-                    required
-                    css={{width: 200}}
-                  >
-                    <option value="" />
-                    {Object.entries(categories).map(([value, {label}]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-
-                <div css={{...controlStyle, marginLeft: '1rem'}}>
-                  <label htmlFor="language" css={labelStyle}>
-                    Language
-                  </label>
-                  <Input
-                    id="language"
-                    value={this.language}
-                    onChange={(event) => {
-                      this.language = event.target.value;
-                    }}
-                    required
-                    placeholder="JavaScript"
-                    css={{width: 200}}
-                  />
-                </div>
+              <div css={{...controlStyle, marginLeft: '1rem'}}>
+                <label htmlFor="language" css={labelStyle}>
+                  Language
+                </label>
+                <Input
+                  id="language"
+                  value={this.language}
+                  onChange={(event) => {
+                    this.language = event.target.value;
+                  }}
+                  required
+                  placeholder="JavaScript"
+                  css={{width: 200}}
+                />
               </div>
+            </div>
 
-              <div css={{...controlStyle, marginBottom: '-.5rem'}}>
-                <label css={labelStyle}>Libraries/Frameworks</label>
-                {this.libraries.map((_, index) => (
-                  <Input
-                    key={index}
-                    value={this.libraries[index]}
-                    onChange={(event) => {
-                      this.libraries[index] = event.target.value;
-                    }}
-                    placeholder={index === 0 ? libraryPlaceholder : 'One more?'}
-                    css={{width: 200, marginBottom: '.5rem'}}
-                  />
-                ))}
-              </div>
+            <div css={{...controlStyle, marginBottom: '-.5rem'}}>
+              <label css={labelStyle}>Libraries/Frameworks</label>
+              {this.libraries.map((_, index) => (
+                <Input
+                  key={index}
+                  value={this.libraries[index]}
+                  onChange={(event) => {
+                    this.libraries[index] = event.target.value;
+                  }}
+                  placeholder={index === 0 ? libraryPlaceholder : 'One more?'}
+                  css={{width: 200, marginBottom: '.5rem'}}
+                />
+              ))}
+            </div>
 
-              <Common.ButtonBar>
-                {onSubmit && (
-                  <Button type="submit" color="primary">
-                    Submit
-                  </Button>
-                )}
+            <Common.ButtonBar>
+              {onSubmit && (
+                <Button type="submit" color="primary">
+                  Submit
+                </Button>
+              )}
 
-                {onApprove && (
-                  <Button
-                    onClick={(event) => {
-                      event.preventDefault();
-                      handleApprove();
-                    }}
-                    color="positive"
-                  >
-                    Approve
-                  </Button>
-                )}
-
-                {onReject && (
-                  <Button
-                    onClick={(event) => {
-                      event.preventDefault();
-                      handleReject();
-                    }}
-                    color="negative"
-                    css={{marginLeft: '1rem'}}
-                  >
-                    Reject
-                  </Button>
-                )}
-
+              {onApprove && (
                 <Button
                   onClick={(event) => {
                     event.preventDefault();
-                    handleCancel();
+                    handleApprove();
                   }}
-                  variant="outline"
+                  color="positive"
+                >
+                  Approve
+                </Button>
+              )}
+
+              {onReject && (
+                <Button
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleReject();
+                  }}
+                  color="negative"
                   css={{marginLeft: '1rem'}}
                 >
-                  Cancel
+                  Reject
                 </Button>
-              </Common.ButtonBar>
-            </form>
-          )}
+              )}
 
-          {isBusy && <Common.LoadingSpinner delay={0} />}
+              <Button
+                onClick={(event) => {
+                  event.preventDefault();
+                  handleCancel();
+                }}
+                variant="outline"
+                css={{marginLeft: '1rem'}}
+              >
+                Cancel
+              </Button>
+            </Common.ButtonBar>
+          </form>
         </Common.Dialog>
       );
     }
@@ -337,15 +361,13 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                       css={rowStyle}
                     >
                       <div css={{...cellStyle, ...columnStyles[0]}}>
-                        {formatRepositoryURL(impl.repositoryURL)}
+                        {impl.formatRepositoryURL()}
                       </div>
                       <div css={{...cellStyle, ...columnStyles[1]}}>
                         {(categories as any)[impl.category].label}
                       </div>
                       <div css={{...cellStyle, ...columnStyles[2]}}>{impl.language}</div>
-                      <div css={{...cellStyle, ...columnStyles[3]}}>
-                        {impl.libraries.join(' + ')}
-                      </div>
+                      <div css={{...cellStyle, ...columnStyles[3]}}>{impl.formatLibraries()}</div>
                       <div css={{...cellStyle, ...columnStyles[4]}}>
                         {formatDistanceToNowStrict(impl.createdAt, {addSuffix: true})}
                       </div>
@@ -356,16 +378,9 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
             )}
 
             {implementations.length === 0 && (
-              <div
-                css={{
-                  marginTop: '2rem',
-                  padding: '1rem',
-                  border: `1px solid ${theme.colors.border.normal}`,
-                  borderRadius: theme.radii.normal
-                }}
-              >
+              <Box css={{marginTop: '2rem', padding: '1rem'}}>
                 There are no submissions to review.
-              </div>
+              </Box>
             )}
           </div>
         );
@@ -407,14 +422,26 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
         );
       });
     }
+
+    formatRepositoryURL() {
+      return this.repositoryURL.slice('https://github.com/'.length);
+    }
+
+    formatLibraries() {
+      return this.libraries.join(' + ');
+    }
+
+    formatNumberOfStars() {
+      return numeral(this.numberOfStars).format('0.[0]a');
+    }
   }
 
   return Implementation;
 };
 
-function formatRepositoryURL(url: string) {
-  return url.slice('https://github.com/'.length);
-}
+export declare const Implementation: ReturnType<typeof getImplementation>;
+
+export type Implementation = InstanceType<typeof Implementation>;
 
 function OpenURLButton({url, className}: {url?: string; className?: string}) {
   const theme = useTheme();

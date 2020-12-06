@@ -8,6 +8,9 @@ import type {GitHub} from './github';
 
 const {maxLength, rangeLength, match, anyOf, integer, positive} = validators;
 
+export type ImplementationCategory = 'frontend' | 'backend' | 'fullstack';
+export type ImplementationStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
+
 const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
 
 @expose({
@@ -34,7 +37,7 @@ export class Implementation extends WithOwner(Entity) {
   @attribute('string', {
     validators: [anyOf(['frontend', 'backend', 'fullstack'])]
   })
-  category!: string;
+  category!: ImplementationCategory;
 
   @expose({get: true, set: ['owner', 'admin']})
   @attribute('string', {validators: [rangeLength([1, 100])]})
@@ -51,7 +54,7 @@ export class Implementation extends WithOwner(Entity) {
   @attribute('string', {
     validators: [anyOf(['pending', 'reviewing', 'approved', 'rejected'])]
   })
-  status = 'pending';
+  status: ImplementationStatus = 'pending';
 
   @expose({get: 'admin'})
   @attribute('User?')

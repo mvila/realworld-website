@@ -1,6 +1,7 @@
 import {provide} from '@layr/component';
 import {Storable} from '@layr/storable';
 import {ComponentHTTPClient} from '@layr/component-http-client';
+import {Fragment} from 'react';
 import {jsx, useTheme} from '@emotion/react';
 import {view, useBrowserRouter} from '@layr/react-integration';
 import {Container, DropdownMenu, ChevronDownIcon} from '@emotion-kit/react';
@@ -43,11 +44,20 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
     }
 
     @view() static Layout({children}: {children?: React.ReactNode}) {
+      const theme = useTheme();
+
       return (
-        <Container css={{maxWidth: '960px'}}>
-          <this.Header />
-          {children}
-        </Container>
+        <>
+          <div css={{backgroundColor: theme.colors.background.highlighted}}>
+            <Container css={{maxWidth: '960px'}}>
+              <this.Header />
+            </Container>
+          </div>
+
+          <div>
+            <Container css={{maxWidth: '960px'}}>{children}</Container>
+          </div>
+        </>
       );
     }
 
@@ -79,7 +89,7 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
       };
 
       return (
-        <header css={{padding: '1rem 0', display: 'flex', alignItems: 'center'}}>
+        <header css={{padding: '.5rem 0 .4rem 0', display: 'flex', alignItems: 'center'}}>
           <Home.Main.Link css={{position: 'relative', top: '-5px'}}>
             <img src={realWorldLogo} alt="RealWorld Example Apps" css={{width: 300}} />
           </Home.Main.Link>
