@@ -71,7 +71,7 @@ export class Home extends Routable(Component) {
     }
 
     return (
-      <div css={{marginTop: '3rem'}}>
+      <div css={{margin: '3rem 0 4rem 0'}}>
         <div css={{display: 'flex', justifyContent: 'center'}}>
           <Box css={{display: 'flex', borderRadius: theme.radii.large}}>
             <CategoryTab category="frontend" isFirst />

@@ -26,8 +26,9 @@ const popularLanguages = [
   'C',
   'C#',
   'C++',
+  'Clojure',
+  'ClojureScript',
   'CoffeeScript',
-  'CSS',
   'Dart',
   'Elixir',
   'Go',
@@ -112,29 +113,10 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
           []
         );
 
-        const [handleSubmit, , , hasBeenSubmitted] = useAsyncCallback(async () => {
+        const [handleSubmit] = useAsyncCallback(async () => {
           await implementation.submit();
-
-          return true;
+          this.SubmitCompleted.navigate();
         });
-
-        if (hasBeenSubmitted) {
-          return (
-            <Common.Dialog title={'Thank you!'}>
-              <p>Your submission has been recorded. We will review it shortly.</p>
-              <Common.ButtonBar>
-                <Button
-                  onClick={() => {
-                    Home.Main.navigate();
-                  }}
-                  color="primary"
-                >
-                  Okay
-                </Button>
-              </Common.ButtonBar>
-            </Common.Dialog>
-          );
-        }
 
         return (
           <implementation.Form
@@ -144,6 +126,28 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
               Home.Main.navigate();
             }}
           />
+        );
+      });
+    }
+
+    @route('/implementations/submit/completed') @view() static SubmitCompleted() {
+      const {Home, Common} = this;
+
+      return Common.ensureUser(() => {
+        return (
+          <Common.Dialog title={'Thank you!'}>
+            <p>Your submission has been recorded. We will review it shortly.</p>
+            <Common.ButtonBar>
+              <Button
+                onClick={() => {
+                  Home.Main.navigate();
+                }}
+                color="primary"
+              >
+                Okay
+              </Button>
+            </Common.ButtonBar>
+          </Common.Dialog>
         );
       });
     }
