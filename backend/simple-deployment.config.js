@@ -19,19 +19,22 @@ module.exports = () => {
     throw new Error(`'MONGODB_STORE_CONNECTION_STRING' environment variable is missing`);
   }
 
-  const mailerLiteAPIKey = process.env.MAILER_LITE_API_KEY;
+  const githubClientId = process.env.GITHUB_CLIENT_ID;
 
-  if (!mailerLiteAPIKey) {
-    throw new Error(`'MAILER_LITE_API_KEY' environment variable is missing`);
+  if (!githubClientId) {
+    throw new Error(`'GITHUB_CLIENT_ID' environment variable is missing`);
   }
 
-  const mailerLiteNewsletterSubscriptionsGroupId =
-    process.env.MAILER_LITE_NEWSLETTER_SUBSCRIPTIONS_GROUP_ID;
+  const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 
-  if (!mailerLiteNewsletterSubscriptionsGroupId) {
-    throw new Error(
-      `'MAILER_LITE_NEWSLETTER_SUBSCRIPTIONS_GROUP_ID' environment variable is missing`
-    );
+  if (!githubClientSecret) {
+    throw new Error(`'GITHUB_CLIENT_SECRET' environment variable is missing`);
+  }
+
+  const githubPersonalAccessToken = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+
+  if (!githubPersonalAccessToken) {
+    throw new Error(`'GITHUB_PERSONAL_ACCESS_TOKEN' environment variable is missing`);
   }
 
   const jwtSecret = process.env.JWT_SECRET;
@@ -51,8 +54,9 @@ module.exports = () => {
       FRONTEND_URL: frontendURL,
       BACKEND_URL: backendURL,
       MONGODB_STORE_CONNECTION_STRING: connectionString,
-      MAILER_LITE_API_KEY: mailerLiteAPIKey,
-      MAILER_LITE_NEWSLETTER_SUBSCRIPTIONS_GROUP_ID: mailerLiteNewsletterSubscriptionsGroupId,
+      GITHUB_CLIENT_ID: githubClientId,
+      GITHUB_CLIENT_SECRET: githubClientSecret,
+      GITHUB_PERSONAL_ACCESS_TOKEN: githubPersonalAccessToken,
       JWT_SECRET: jwtSecret
     },
     aws: {
