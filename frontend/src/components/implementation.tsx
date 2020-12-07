@@ -4,7 +4,7 @@ import {useMemo, useCallback} from 'react';
 import {view, useAsyncCallback, useAsyncMemo} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Input, Select, Button} from '@emotion-starter/react';
-import {Box, LaunchIcon} from '@emotion-kit/react';
+import {Box, ComboBox, LaunchIcon} from '@emotion-kit/react';
 import compact from 'lodash/compact';
 import {formatDistanceToNowStrict} from 'date-fns';
 import numeral from 'numeral';
@@ -22,6 +22,74 @@ export const categories = {
   fullstack: {label: 'Fullstack'}
 };
 
+const popularLanguages = [
+  'C',
+  'C#',
+  'C++',
+  'CoffeeScript',
+  'CSS',
+  'Dart',
+  'Elixir',
+  'Go',
+  'Groovy',
+  'Java',
+  'JavaScript',
+  'Kotlin',
+  'Objective-C',
+  'Perl',
+  'PHP',
+  'Python',
+  'Ruby',
+  'Rust',
+  'Scala',
+  'Swift',
+  'TypeScript'
+];
+
+const popularLibraries = [
+  'Angular',
+  'Apollo',
+  'Aurelia',
+  'Backbone',
+  'Dojo',
+  'Elm',
+  'Ember.js',
+  'Express',
+  'Feathers',
+  'Flux',
+  'Gatsby',
+  'GraphQL',
+  'Hapi',
+  'Immer',
+  'Ionic',
+  'jQuery',
+  'Koa',
+  'Laravel',
+  'LoopBack',
+  'Meteor',
+  'Micro',
+  'MobX',
+  'NestJS',
+  '.NET',
+  'Next.js',
+  'NgRx',
+  'Nuxt.js',
+  'Polymer',
+  'Preact',
+  'Prisma',
+  'React',
+  'React Native',
+  'Redux',
+  'Relay',
+  'Restify',
+  'Ruby on Rails',
+  'RxJS',
+  'Sails',
+  'Svelte',
+  'Vue.js',
+  'Vuex'
+];
+
 export const getImplementation = (Base: typeof BackendImplementation) => {
   class Implementation extends Routable(Base) {
     ['constructor']!: typeof Implementation;
@@ -36,10 +104,10 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
         const implementation = useMemo(
           () =>
             new this({
-              repositoryURL: 'https://github.com/gothinkster/react-redux-realworld-example-app',
+              repositoryURL: '',
               category: 'frontend',
-              language: 'JavaScript',
-              libraries: ['React', '']
+              language: '',
+              libraries: ['']
             }),
           []
         );
@@ -210,11 +278,12 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                 <label htmlFor="language" css={labelStyle}>
                   Language
                 </label>
-                <Input
+                <ComboBox
                   id="language"
-                  value={this.language}
-                  onChange={(event) => {
-                    this.language = event.target.value;
+                  items={popularLanguages}
+                  initialValue={this.language}
+                  onValueChange={(value) => {
+                    this.language = value;
                   }}
                   required
                   placeholder="JavaScript"
@@ -226,11 +295,12 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
             <div css={{...controlStyle, marginBottom: '-.5rem'}}>
               <label css={labelStyle}>Libraries/Frameworks</label>
               {this.libraries.map((_, index) => (
-                <Input
+                <ComboBox
                   key={index}
-                  value={this.libraries[index]}
-                  onChange={(event) => {
-                    this.libraries[index] = event.target.value;
+                  items={popularLibraries}
+                  initialValue={this.libraries[index]}
+                  onValueChange={(value) => {
+                    this.libraries[index] = value;
                   }}
                   placeholder={index === 0 ? libraryPlaceholder : 'One more?'}
                   css={{width: 200, marginBottom: '.5rem'}}

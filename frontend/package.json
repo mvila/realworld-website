@@ -10,8 +10,8 @@
     "start": "webpack serve --mode=development"
   },
   "dependencies": {
-    "@emotion-kit/react": "^1.0.34",
-    "@emotion-starter/react": "^1.0.44",
+    "@emotion-kit/react": "^1.0.39",
+    "@emotion-starter/react": "^1.0.48",
     "@emotion/react": "^11.1.2",
     "@layr/browser-router": "^1.0.9",
     "@layr/component": "^1.0.12",

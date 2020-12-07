@@ -92,12 +92,12 @@ export class Home extends Routable(Component) {
                       display: 'flex',
                       alignItems: 'center',
                       marginTop: -1,
-                      padding: '.5rem 0',
+                      padding: '.7rem 0 .9rem 0',
                       borderTop: `1px solid ${theme.colors.border.normal}`,
                       borderBottom: `1px solid ${theme.colors.border.normal}`
                     }}
                   >
-                    <div css={{flex: 1}}>
+                    <div css={{flex: 1, lineHeight: theme.lineHeights.small}}>
                       <div
                         css={{
                           fontSize: theme.fontSizes.large,
@@ -106,10 +106,14 @@ export class Home extends Routable(Component) {
                       >
                         {impl.formatLibraries()}
                       </div>
-                      <div css={{color: theme.colors.text.muted}}>{impl.formatRepositoryURL()}</div>
+                      <div css={{marginTop: '.3rem', color: theme.colors.text.muted}}>
+                        {impl.formatRepositoryURL()}
+                      </div>
                     </div>
-                    <div css={{width: '125px'}}>{impl.language}</div>
-                    <div css={{width: '90px', display: 'flex', alignItems: 'center'}}>
+                    <div css={{width: '150px', lineHeight: 1}}>{impl.language}</div>
+                    <div
+                      css={{width: '90px', display: 'flex', alignItems: 'center', lineHeight: 1}}
+                    >
                       <StarIcon
                         size={20}
                         color={theme.colors.text.muted}
