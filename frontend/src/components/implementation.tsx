@@ -104,12 +104,14 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
       return Common.ensureUser(() => {
         const implementation = useMemo(
           () =>
-            new this({
-              repositoryURL: '',
-              category: 'frontend',
-              language: '',
-              libraries: ['']
-            }),
+            this.create(
+              {
+                repositoryURL: '',
+                language: '',
+                libraries: ['']
+              },
+              {attributeSelector: {id: true}}
+            ),
           []
         );
 
@@ -204,12 +206,14 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
         this.libraries = [...this.libraries, ''];
       }
 
+      const category = this.getAttribute('category').isSet() ? this.category : '';
+
       const libraryPlaceholder =
-        this.category === 'frontend'
+        category === 'frontend'
           ? 'React'
-          : this.category === 'backend'
+          : category === 'backend'
           ? 'Express'
-          : this.category === 'fullstack'
+          : category === 'fullstack'
           ? 'Meteor'
           : '';
 
@@ -263,13 +267,18 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                 </label>
                 <Select
                   id="category"
-                  value={this.category}
+                  value={category}
                   onChange={(event) => {
-                    this.category = event.target.value as ImplementationCategory;
+                    if (event.target.value !== '') {
+                      this.category = event.target.value as ImplementationCategory;
+                    } else {
+                      this.getAttribute('category').unsetValue();
+                    }
                   }}
                   required
                   css={{width: 200}}
                 >
+                  {this.isNew() && <option value="" />}
                   {Object.entries(categories).map(([value, {label}]) => (
                     <option key={value} value={value}>
                       {label}
