@@ -14,6 +14,8 @@ import {Home} from './home';
 import {Common} from './common';
 // @ts-ignore
 import realWorldLogo from '../assets/realworld-logo-dark-mode-20201201.immutable.png';
+// @ts-ignore
+import realWorldLogoNarrow from '../assets/realworld-logo-narrow-dark-mode-20201209.immutable.png';
 
 export const getApplication = async ({backendURL}: {backendURL: string}) => {
   const client = new ComponentHTTPClient(backendURL, {mixins: [Storable]});
@@ -91,12 +93,21 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
       return (
         <header css={{padding: '.5rem 0 .4rem 0', display: 'flex', alignItems: 'center'}}>
           <Home.Main.Link css={{position: 'relative', top: '-5px'}}>
-            <img src={realWorldLogo} alt="RealWorld Example Apps" css={{width: 300}} />
+            <img
+              src={realWorldLogo}
+              alt="RealWorld Example Apps"
+              css={theme.responsive({width: 300, display: [, , 'none']})}
+            />
+            <img
+              src={realWorldLogoNarrow}
+              alt="RealWorld Example Apps"
+              css={theme.responsive({width: 160, display: ['none', , 'inline-block']})}
+            />
           </Home.Main.Link>
 
           <nav css={{marginLeft: 'auto'}}>
             <ul css={menuStyle}>
-              <li css={menuItemStyle}>
+              <li css={theme.responsive({...menuItemStyle, display: [, , 'none']})}>
                 <a
                   href="https://github.com/gothinkster/realworld/tree/master/spec"
                   target="_blank"
@@ -106,14 +117,14 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
                 </a>
               </li>
 
-              <li css={menuItemStyle}>
+              <li css={theme.responsive({...menuItemStyle, display: [, , 'none']})}>
                 <Implementation.Submit.Link css={menuItemLinkStyle}>
                   Submit
                 </Implementation.Submit.Link>
               </li>
 
               {user?.isAdmin && (
-                <li css={menuItemStyle}>
+                <li css={theme.responsive({...menuItemStyle, display: [, , 'none']})}>
                   <DropdownMenu
                     items={[
                       {

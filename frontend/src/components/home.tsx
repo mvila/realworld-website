@@ -44,10 +44,9 @@ export class Home extends Routable(Component) {
         return (
           <this.Main.Link params={{category}} css={hiddenLinkStyle}>
             <div
-              css={{
-                'padding': '.75rem 1.25rem',
-                'fontSize': theme.fontSizes.large,
-                // 'fontWeight': theme.fontWeights.semibold,
+              css={theme.responsive({
+                'padding': ['.75rem 1.25rem', , , '.5rem .75rem'],
+                'fontSize': [theme.fontSizes.large, , , theme.fontSizes.normal],
                 'lineHeight': theme.lineHeights.small,
                 'color': isCurrent ? theme.colors.primary.textOnNormal : undefined,
                 'backgroundColor': isCurrent ? theme.colors.primary.normal : undefined,
@@ -56,7 +55,7 @@ export class Home extends Routable(Component) {
                 ':hover': {
                   backgroundColor: !isCurrent ? theme.colors.background.highlighted : undefined
                 }
-              }}
+              })}
             >
               {categories[category].label}
             </div>
@@ -90,6 +89,7 @@ export class Home extends Routable(Component) {
                   <div
                     css={{
                       display: 'flex',
+                      flexWrap: 'wrap',
                       alignItems: 'center',
                       marginTop: -1,
                       padding: '.7rem 0 .9rem 0',
@@ -97,7 +97,14 @@ export class Home extends Routable(Component) {
                       borderBottom: `1px solid ${theme.colors.border.normal}`
                     }}
                   >
-                    <div css={{flex: 1, lineHeight: theme.lineHeights.small}}>
+                    <div
+                      css={theme.responsive({
+                        flex: ['1', , , '1 0 100%'],
+                        marginBottom: [, , , '.5rem'],
+                        paddingRight: '1rem',
+                        lineHeight: theme.lineHeights.small
+                      })}
+                    >
                       <div
                         css={{
                           fontSize: theme.fontSizes.large,

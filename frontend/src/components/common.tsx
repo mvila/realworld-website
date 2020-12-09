@@ -56,16 +56,24 @@ export class Common extends Routable(Component) {
 
   @view() static Dialog({
     title,
-    width = 600,
+    maxWidth = 600,
     children
   }: {
     title: string;
-    width?: number;
+    maxWidth?: number;
     children: React.ReactNode;
   }) {
+    const theme = useTheme();
+
     return (
-      <Box css={{width, margin: '3rem auto 0 auto', padding: '2rem'}}>
-        <h3 css={{marginBottom: '2rem', lineHeight: 1}}>{title}</h3>
+      <Box
+        css={theme.responsive({
+          maxWidth,
+          margin: '3rem auto 0 auto',
+          padding: ['1.5rem 2rem 2rem 2rem', , , '0.5rem 1rem 1rem 1rem']
+        })}
+      >
+        <h3 css={theme.responsive({marginBottom: ['1.5rem', , , '.5rem']})}>{title}</h3>
         {children}
       </Box>
     );
@@ -73,7 +81,10 @@ export class Common extends Routable(Component) {
 
   @view() static ButtonBar({className, children}: {className?: string; children: React.ReactNode}) {
     return (
-      <div className={className} css={{marginTop: '2rem', display: 'flex', alignItems: 'center'}}>
+      <div
+        className={className}
+        css={{marginTop: '1rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center'}}
+      >
         {children}
       </div>
     );

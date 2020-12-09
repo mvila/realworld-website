@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@emotion-kit/react": "^1.0.39",
-    "@emotion-starter/react": "^1.0.48",
+    "@emotion-starter/react": "^1.0.49",
     "@emotion/react": "^11.1.2",
     "@layr/browser-router": "^1.0.9",
     "@layr/component": "^1.0.12",

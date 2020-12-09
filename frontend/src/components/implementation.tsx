@@ -145,6 +145,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                   Home.Main.navigate();
                 }}
                 color="primary"
+                css={{marginTop: '1rem'}}
               >
                 Okay
               </Button>
@@ -260,8 +261,8 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
               </div>
             </div>
 
-            <div css={{display: 'flex'}}>
-              <div css={controlStyle}>
+            <div css={{display: 'flex', flexWrap: 'wrap'}}>
+              <div css={{...controlStyle, marginRight: '1rem'}}>
                 <label htmlFor="category" css={labelStyle}>
                   Category
                 </label>
@@ -287,7 +288,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                 </Select>
               </div>
 
-              <div css={{...controlStyle, marginLeft: '1rem'}}>
+              <div css={{...controlStyle}}>
                 <label htmlFor="language" css={labelStyle}>
                   Language
                 </label>
@@ -323,7 +324,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
             <Common.ButtonBar>
               {onSubmit && (
-                <Button type="submit" color="primary">
+                <Button type="submit" color="primary" css={{margin: '1rem 1rem 0 0'}}>
                   Submit
                 </Button>
               )}
@@ -335,6 +336,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     handleApprove();
                   }}
                   color="positive"
+                  css={{margin: '1rem 1rem 0 0'}}
                 >
                   Approve
                 </Button>
@@ -347,7 +349,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     handleReject();
                   }}
                   color="negative"
-                  css={{marginLeft: '1rem'}}
+                  css={{margin: '1rem 1rem 0 0'}}
                 >
                   Reject
                 </Button>
@@ -359,7 +361,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                   handleCancel();
                 }}
                 variant="outline"
-                css={{marginLeft: '1rem'}}
+                css={{marginTop: '1rem'}}
               >
                 Cancel
               </Button>
