@@ -5,6 +5,7 @@ import {view, useDelay} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Button} from '@emotion-starter/react';
 import {Box, ErrorIcon} from '@emotion-kit/react';
+import {useWindowHeight} from '@react-hook/window-size';
 
 import type {Home} from './home';
 import type {User} from './user';
@@ -54,6 +55,22 @@ export class Common extends Routable(Component) {
     return content(Session.user);
   }
 
+  @view() static FullHeight({
+    className,
+    children
+  }: {
+    className?: string;
+    children: React.ReactNode;
+  }) {
+    const height = useWindowHeight({initialHeight: 600});
+
+    return (
+      <div className={className} css={{minHeight: height}}>
+        {children}
+      </div>
+    );
+  }
+
   @view() static Dialog({
     title,
     maxWidth = 600,
@@ -66,16 +83,19 @@ export class Common extends Routable(Component) {
     const theme = useTheme();
 
     return (
-      <Box
-        css={theme.responsive({
-          maxWidth,
-          margin: '3rem auto 0 auto',
-          padding: ['1.5rem 2rem 2rem 2rem', , , '0.5rem 1rem 1rem 1rem']
-        })}
-      >
-        <h3 css={theme.responsive({marginBottom: ['1.5rem', , , '.5rem']})}>{title}</h3>
-        {children}
-      </Box>
+      <div css={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <Box
+          css={theme.responsive({
+            width: '100%',
+            maxWidth,
+            margin: '3rem 0',
+            padding: ['1.5rem 2rem 2rem 2rem', , , '0.5rem 1rem 1rem 1rem']
+          })}
+        >
+          <h3 css={theme.responsive({marginBottom: ['1.5rem', , , '.5rem']})}>{title}</h3>
+          {children}
+        </Box>
+      </div>
     );
   }
 

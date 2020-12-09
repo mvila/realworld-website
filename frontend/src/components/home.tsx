@@ -79,7 +79,11 @@ export class Home extends Routable(Component) {
           </Box>
         </div>
 
-        {implementations === undefined && <Common.LoadingSpinner />}
+        {implementations === undefined && (
+          <div css={{marginBottom: 2000}}>
+            <Common.LoadingSpinner />
+          </div>
+        )}
 
         {implementations !== undefined && (
           <div css={{marginTop: '2rem'}}>

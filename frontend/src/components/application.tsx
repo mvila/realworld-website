@@ -1,7 +1,6 @@
 import {provide} from '@layr/component';
 import {Storable} from '@layr/storable';
 import {ComponentHTTPClient} from '@layr/component-http-client';
-import {Fragment} from 'react';
 import {jsx, useTheme} from '@emotion/react';
 import {view, useBrowserRouter} from '@layr/react-integration';
 import {Container, DropdownMenu, ChevronDownIcon} from '@emotion-kit/react';
@@ -49,17 +48,31 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
       const theme = useTheme();
 
       return (
-        <>
+        <Common.FullHeight css={{display: 'flex', flexDirection: 'column'}}>
           <div css={{backgroundColor: theme.colors.background.highlighted}}>
             <Container css={{maxWidth: '960px'}}>
               <this.Header />
             </Container>
           </div>
 
-          <div>
-            <Container css={{maxWidth: '960px'}}>{children}</Container>
+          <Container
+            css={{
+              flex: 1,
+              width: '100%',
+              maxWidth: '960px',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            {children}
+          </Container>
+
+          <div css={{backgroundColor: theme.colors.background.highlighted}}>
+            <Container css={{maxWidth: '960px'}}>
+              <this.Footer />
+            </Container>
           </div>
-        </>
+        </Common.FullHeight>
       );
     }
 
@@ -77,16 +90,18 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
         display: 'flex',
         alignItems: 'center'
       };
+
       const menuItemStyle = {
         margin: '0 0 0 1.5rem',
         display: 'flex'
       };
+
       const menuItemLinkStyle = {
         'color': theme.colors.primary.normal,
         'cursor': 'pointer',
         ':hover': {
-          color: theme.colors.primary.highlighted,
-          textDecoration: 'underline'
+          color: theme.colors.text.normal,
+          textDecoration: 'none'
         }
       };
 
@@ -164,6 +179,104 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
             </ul>
           </nav>
         </header>
+      );
+    }
+
+    @view() static Footer() {
+      const {Implementation} = this;
+
+      const theme = useTheme();
+
+      const headerStyle = {
+        marginBottom: '1.2rem',
+        fontSize: theme.fontSizes.small,
+        color: theme.colors.text.normal,
+        fontWeight: theme.fontWeights.bold,
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
+      } as const;
+
+      const menuStyle = {
+        paddingLeft: 0,
+        listStyle: 'none',
+        margin: 0
+      };
+
+      const menuItemStyle = {
+        margin: '1rem 0 0 0'
+      };
+
+      const menuItemLinkStyle = {
+        'color': theme.colors.text.muted,
+        ':hover': {
+          color: theme.colors.text.normal,
+          textDecoration: 'none'
+        }
+      };
+
+      return (
+        <footer
+          css={theme.responsive({
+            display: 'flex',
+            justifyContent: ['center', , , 'start'],
+            padding: '3rem 0'
+          })}
+        >
+          <nav
+            css={theme.responsive({
+              width: '100%',
+              maxWidth: 450,
+              display: 'flex',
+              flexDirection: ['row', , , 'column'],
+              justifyContent: 'space-between',
+              lineHeight: theme.lineHeights.small
+            })}
+          >
+            <div>
+              <h6 css={headerStyle}>Contribute</h6>
+              <ul css={menuStyle}>
+                <li css={menuItemStyle}>
+                  <a
+                    href="https://github.com/gothinkster/realworld/tree/master/spec"
+                    target="_blank"
+                    css={menuItemLinkStyle}
+                  >
+                    Create an implementation
+                  </a>
+                </li>
+                <li css={menuItemStyle}>
+                  <Implementation.Submit.Link css={menuItemLinkStyle}>
+                    Submit an implementation
+                  </Implementation.Submit.Link>
+                </li>
+              </ul>
+            </div>
+
+            <div css={theme.responsive({marginTop: [0, , , '2rem']})}>
+              <h6 css={headerStyle}>GitHub</h6>
+              <ul css={menuStyle}>
+                <li css={menuItemStyle}>
+                  <a
+                    href="https://github.com/gothinkster/realworld"
+                    target="_blank"
+                    css={menuItemLinkStyle}
+                  >
+                    RealWorld repository
+                  </a>
+                </li>
+                <li css={menuItemStyle}>
+                  <a
+                    href="https://github.com/mvila/realworld-website"
+                    target="_blank"
+                    css={menuItemLinkStyle}
+                  >
+                    Website repository
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </footer>
       );
     }
   }

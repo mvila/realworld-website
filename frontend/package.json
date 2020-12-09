@@ -19,6 +19,7 @@
     "@layr/react-integration": "^1.0.10",
     "@layr/routable": "^1.0.8",
     "@layr/storable": "^1.0.9",
+    "@react-hook/window-size": "^3.0.7",
     "date-fns": "^2.16.1",
     "lodash": "^4.17.20",
     "numeral": "^2.0.6",
