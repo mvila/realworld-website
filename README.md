@@ -59,6 +59,32 @@ Add the following environment variables when starting the website:
 DEBUG=layr:* DEBUG_DEPTH=10
 ```
 
+## Deploy
+
+## Deploying to production
+
+Execute the following command:
+
+```sh
+FRONTEND_URL=https://realworld.mvila.me \
+  BACKEND_URL=https://backend.realworld.mvila.me \
+  MONGODB_STORE_CONNECTION_STRING="********" \
+  GITHUB_CLIENT_ID="********" \
+  GITHUB_CLIENT_SECRET="********" \
+  GITHUB_PERSONAL_ACCESS_TOKEN="********" \
+  JWT_SECRET="********" \
+  npm run deploy
+```
+
+Add an AWS EventBridge rule to automatically refresh the GitHub stars of the implementations:
+
+- Name: `refresh-realworld-github-data`
+- Schedule:
+  - Fixed rate every: `1 hour`
+- Target:
+  - Lambda function: `backend-realworld-mvila-me`
+  - Constant input: `{"rawPath": "/", "requestContext": {"http": {"method": "POST"}}, "body": "{\"query\": {\"<=\": {\"__component\": \"typeof Implementation\"}, \"refreshGitHubData=>\": {\"()\": []}}}"}`
+
 ## License
 
 MIT

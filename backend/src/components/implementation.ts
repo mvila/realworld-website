@@ -68,6 +68,8 @@ export class Implementation extends WithOwner(Entity) {
 
   @attribute() githubData!: any;
 
+  @attribute() githubDataFetchedOn?: Date;
+
   @expose({call: 'owner'}) @method() async submit() {
     const {Session, GitHub} = this.constructor;
 
@@ -101,6 +103,7 @@ export class Implementation extends WithOwner(Entity) {
 
     this.numberOfStars = numberOfStars;
     this.githubData = githubData;
+    this.githubDataFetchedOn = new Date();
 
     await this.save();
   }
@@ -212,6 +215,48 @@ export class Implementation extends WithOwner(Entity) {
     this.reviewStartedOn = undefined;
 
     await this.save({status: true, reviewer: true, reviewStartedOn: true});
+  }
+
+  @expose({call: true}) @method() static async refreshGitHubData() {
+    // This method is executed 24 times a day, so each implementation should be
+    // refreshed once a day
+
+    // Trigger the execution in development mode with:
+    // time curl -v -X POST -H "Content-Type: application/json" -d '{"query": {"<=": {"__component": "typeof Implementation"}, "refreshGitHubData=>": {"()": []}}}' http://localhost:15542
+
+    const {GitHub} = this;
+
+    const numberOfImplementations = await this.count();
+    const limit = Math.ceil(numberOfImplementations / 24);
+
+    const implementations = await this.find(
+      {},
+      {repositoryURL: true},
+      {sort: {githubDataFetchedOn: 'asc'}, limit}
+    );
+
+    for (const implementation of implementations) {
+      try {
+        const {owner, name} = parseRepositoryURL(implementation.repositoryURL);
+
+        const {numberOfStars, githubData} = await GitHub.fetchRepository({owner, name});
+
+        implementation.numberOfStars = numberOfStars;
+        implementation.githubData = githubData;
+
+        console.log(
+          `The implementation '${implementation.repositoryURL}' has been successfully refreshed`
+        );
+      } catch (error) {
+        console.error(
+          `An error occurred while refreshing the implementation '${implementation.repositoryURL}' (${error.message})`
+        );
+      }
+
+      implementation.githubDataFetchedOn = new Date();
+
+      await implementation.save();
+    }
   }
 }
 
