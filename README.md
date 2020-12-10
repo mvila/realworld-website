@@ -83,7 +83,7 @@ Add an AWS EventBridge rule to automatically refresh the GitHub stars of the imp
   - Fixed rate every: `1 hour`
 - Target:
   - Lambda function: `backend-realworld-mvila-me`
-  - Constant input: `{"rawPath": "/", "requestContext": {"http": {"method": "POST"}}, "body": "{\"query\": {\"<=\": {\"__component\": \"typeof Implementation\"}, \"refreshGitHubData=>\": {\"()\": []}}}"}`
+  - Constant input: `{"query": {"<=": {"__component": "typeof Implementation"}, "refreshGitHubData=>": {"()": []}}}`
 
 ## License
 
