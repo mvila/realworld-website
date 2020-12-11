@@ -29,6 +29,7 @@ Execute the following command while replacing the `"********"` with the informat
 ```sh
 FRONTEND_URL=http://localhost:15541 \
   BACKEND_URL=http://localhost:15542 \
+  EMAIL_ADDRESS="********" \
   MONGODB_STORE_CONNECTION_STRING=mongodb://test:test@localhost:15543/test \
   GITHUB_CLIENT_ID="********" \
   GITHUB_CLIENT_SECRET="********" \
@@ -61,13 +62,23 @@ DEBUG=layr:* DEBUG_DEPTH=10
 
 ## Deploy
 
-## Deploying to production
+## Deploying to AWS
+
+Create an AWS IAM role:
+
+- Trusted entity: `AWS service`
+- Use case: `Lambda`
+- Name: `realworld-website-backend-prod`
+- Permission policies:
+  - CloudWatchLogsFullAccess
+  - AmazonSESFullAccess
 
 Execute the following command:
 
 ```sh
 FRONTEND_URL=https://realworld.mvila.me \
   BACKEND_URL=https://backend.realworld.mvila.me \
+  EMAIL_ADDRESS="********" \
   MONGODB_STORE_CONNECTION_STRING="********" \
   GITHUB_CLIENT_ID="********" \
   GITHUB_CLIENT_SECRET="********" \

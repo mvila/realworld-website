@@ -11,6 +11,12 @@ module.exports = () => {
     throw new Error(`'BACKEND_URL' environment variable is missing`);
   }
 
+  const emailAddress = process.env.EMAIL_ADDRESS;
+
+  if (!emailAddress) {
+    throw new Error(`'EMAIL_ADDRESS' environment variable is missing`);
+  }
+
   const domainName = new URL(backendURL).hostname;
 
   const connectionString = process.env.MONGODB_STORE_CONNECTION_STRING;
@@ -53,6 +59,7 @@ module.exports = () => {
     environment: {
       FRONTEND_URL: frontendURL,
       BACKEND_URL: backendURL,
+      EMAIL_ADDRESS: emailAddress,
       MONGODB_STORE_CONNECTION_STRING: connectionString,
       GITHUB_CLIENT_ID: githubClientId,
       GITHUB_CLIENT_SECRET: githubClientSecret,
@@ -62,6 +69,7 @@ module.exports = () => {
     aws: {
       region: 'us-west-2',
       lambda: {
+        executionRole: 'realworld-website-backend-prod',
         memorySize: 1024,
         timeout: 25
       }

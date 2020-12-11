@@ -5,8 +5,15 @@ import type {User} from './user';
 import {Entity} from './entity';
 import {WithOwner} from './with-owner';
 import type {GitHub} from './github';
+import type {Mailer} from './mailer';
 
 const {maxLength, rangeLength, match, anyOf, integer, positive} = validators;
+
+const frontendURL = process.env.FRONTEND_URL;
+
+if (!frontendURL) {
+  throw new Error(`'FRONTEND_URL' environment variable is missing`);
+}
 
 export type ImplementationCategory = 'frontend' | 'backend' | 'fullstack';
 export type ImplementationStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
@@ -26,6 +33,7 @@ export class Implementation extends WithOwner(Entity) {
   ['constructor']!: typeof Implementation;
 
   @consume() static GitHub: typeof GitHub;
+  @consume() static Mailer: typeof Mailer;
 
   @expose({get: true, set: ['owner', 'admin']})
   @attribute('string', {
@@ -71,7 +79,7 @@ export class Implementation extends WithOwner(Entity) {
   @attribute() githubDataFetchedOn?: Date;
 
   @expose({call: 'owner'}) @method() async submit() {
-    const {Session, GitHub} = this.constructor;
+    const {Session, GitHub, Mailer} = this.constructor;
 
     if (!this.isNew()) {
       throw new Error('Cannot submit a non-new implementation');
@@ -106,6 +114,15 @@ export class Implementation extends WithOwner(Entity) {
     this.githubDataFetchedOn = new Date();
 
     await this.save();
+
+    try {
+      await Mailer.sendMail({
+        subject: 'A new RealWorld implementation has been submitted',
+        text: `A new RealWorld implementation has been submitted:\n\n${frontendURL}/implementations/${this.id}/review\n`
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   @expose({call: 'admin'}) @method() static async findSubmissionsToReview<
@@ -172,9 +189,15 @@ export class Implementation extends WithOwner(Entity) {
   }
 
   @expose({call: 'admin'}) @method() async approveSubmission() {
-    const {Session} = this.constructor;
+    const {Session, Mailer} = this.constructor;
 
-    await this.load({status: true, reviewer: {}});
+    await this.load({
+      repositoryURL: true,
+      category: true,
+      status: true,
+      owner: {username: true, email: true},
+      reviewer: {}
+    });
 
     if (this.status !== 'reviewing' || this.reviewer !== Session.user) {
       throw new Error('Approval error');
@@ -184,6 +207,24 @@ export class Implementation extends WithOwner(Entity) {
     this.reviewStartedOn = undefined;
 
     await this.save();
+
+    try {
+      await Mailer.sendMail({
+        to: this.owner.email,
+        subject: 'Your RealWorld implementation has been approved',
+        html: `
+<p>Hi, ${this.owner.username},</p>
+
+<p>Your <a href="${this.repositoryURL}">RealWorld implementation</a> has been approved and is now listed on the <a href="${frontendURL}/?category=${this.category}">home page</a> of our website.</p>
+
+<p>Thanks a lot for your contribution!</p>
+
+<p>--<br>The RealWorld example apps project</p>
+`
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   @expose({call: 'admin'}) @method() async rejectSubmission() {
