@@ -50,7 +50,7 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
       return (
         <Common.FullHeight css={{display: 'flex', flexDirection: 'column'}}>
           <div css={{backgroundColor: theme.colors.background.highlighted}}>
-            <Container css={{maxWidth: '960px'}}>
+            <Container>
               <this.Header />
             </Container>
           </div>
@@ -68,7 +68,7 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
           </Container>
 
           <div css={{backgroundColor: theme.colors.background.highlighted}}>
-            <Container css={{maxWidth: '960px'}}>
+            <Container>
               <this.Footer />
             </Container>
           </div>
