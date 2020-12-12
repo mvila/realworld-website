@@ -16,6 +16,7 @@ if (!frontendURL) {
 }
 
 export type ImplementationCategory = 'frontend' | 'backend' | 'fullstack';
+export type FrontendEnvironment = 'web' | 'mobile' | 'desktop';
 export type ImplementationStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
 
 const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -46,6 +47,12 @@ export class Implementation extends WithOwner(Entity) {
     validators: [anyOf(['frontend', 'backend', 'fullstack'])]
   })
   category!: ImplementationCategory;
+
+  @expose({get: true, set: ['owner', 'admin']})
+  @attribute('string?', {
+    validators: [anyOf([undefined, 'web', 'mobile', 'desktop'])]
+  })
+  frontendEnvironment?: FrontendEnvironment;
 
   @expose({get: true, set: ['owner', 'admin']})
   @attribute('string', {validators: [rangeLength([1, 100])]})
@@ -144,7 +151,14 @@ export class Implementation extends WithOwner(Entity) {
           }
         ]
       },
-      {repositoryURL: true, category: true, language: true, libraries: true, createdAt: true},
+      {
+        repositoryURL: true,
+        category: true,
+        frontendEnvironment: true,
+        language: true,
+        libraries: true,
+        createdAt: true
+      },
       {sort: {created: 'desc'}}
     )) as InstanceType<T>[];
   }
@@ -158,6 +172,7 @@ export class Implementation extends WithOwner(Entity) {
     const implementation = (await this.get(id, {
       repositoryURL: true,
       category: true,
+      frontendEnvironment: true,
       language: true,
       libraries: true,
       status: true,

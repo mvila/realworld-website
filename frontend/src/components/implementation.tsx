@@ -11,15 +11,22 @@ import numeral from 'numeral';
 
 import type {
   Implementation as BackendImplementation,
-  ImplementationCategory
+  ImplementationCategory,
+  FrontendEnvironment
 } from '../../../backend/src/components/implementation';
 import type {Home} from './home';
 import type {Common} from './common';
 
-export const categories = {
+export const implementationCategories = {
   frontend: {label: 'Frontend'},
   backend: {label: 'Backend'},
   fullstack: {label: 'Fullstack'}
+};
+
+export const frontendEnvironments = {
+  web: {label: 'Web'},
+  mobile: {label: 'Mobile'},
+  desktop: {label: 'Desktop'}
 };
 
 const popularLanguages = [
@@ -107,6 +114,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
             this.create(
               {
                 repositoryURL: '',
+                frontendEnvironment: undefined,
                 language: '',
                 libraries: ['']
               },
@@ -275,18 +283,47 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     } else {
                       this.getAttribute('category').unsetValue();
                     }
+
+                    this.frontendEnvironment = undefined;
                   }}
                   required
-                  css={{width: 200}}
+                  css={{width: 150}}
                 >
                   {this.isNew() && <option value="" />}
-                  {Object.entries(categories).map(([value, {label}]) => (
+                  {Object.entries(implementationCategories).map(([value, {label}]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
                   ))}
                 </Select>
               </div>
+
+              {(category === 'frontend' || category === 'fullstack') && (
+                <div css={{...controlStyle, marginRight: '1rem'}}>
+                  <label htmlFor="frontendEnvironment" css={labelStyle}>
+                    Environment
+                  </label>
+                  <Select
+                    id="frontendEnvironment"
+                    value={this.frontendEnvironment !== undefined ? this.frontendEnvironment : ''}
+                    onChange={(event) => {
+                      this.frontendEnvironment =
+                        event.target.value !== ''
+                          ? (event.target.value as FrontendEnvironment)
+                          : undefined;
+                    }}
+                    required
+                    css={{width: 150}}
+                  >
+                    <option value="" />
+                    {Object.entries(frontendEnvironments).map(([value, {label}]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
 
               <div css={{...controlStyle}}>
                 <label htmlFor="language" css={labelStyle}>
@@ -411,6 +448,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
           {width: '275px'},
           {width: '100px'},
           {width: '125px'},
+          {width: '125px'},
           {flex: 1},
           {paddingRight: 0, width: '125px'}
         ] as const;
@@ -431,30 +469,38 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                 <div css={headerStyle}>
                   <div css={{...cellStyle, ...columnStyles[0]}}>Repository</div>
                   <div css={{...cellStyle, ...columnStyles[1]}}>Category</div>
-                  <div css={{...cellStyle, ...columnStyles[2]}}>Language</div>
-                  <div css={{...cellStyle, ...columnStyles[3]}}>Libraries/Frameworks</div>
-                  <div css={{...cellStyle, ...columnStyles[4]}}>Submitted</div>
+                  <div css={{...cellStyle, ...columnStyles[2]}}>Environment</div>
+                  <div css={{...cellStyle, ...columnStyles[3]}}>Language</div>
+                  <div css={{...cellStyle, ...columnStyles[4]}}>Libraries/Frameworks</div>
+                  <div css={{...cellStyle, ...columnStyles[5]}}>Submitted</div>
                 </div>
 
-                {implementations.map((impl) => {
+                {implementations.map((implementation) => {
                   return (
                     <div
-                      key={impl.id}
+                      key={implementation.id}
                       onClick={() => {
-                        this.Review.navigate(impl);
+                        this.Review.navigate(implementation);
                       }}
                       css={rowStyle}
                     >
                       <div css={{...cellStyle, ...columnStyles[0]}}>
-                        {impl.formatRepositoryURL()}
+                        {implementation.formatRepositoryURL()}
                       </div>
                       <div css={{...cellStyle, ...columnStyles[1]}}>
-                        {(categories as any)[impl.category].label}
+                        {(implementationCategories as any)[implementation.category].label}
                       </div>
-                      <div css={{...cellStyle, ...columnStyles[2]}}>{impl.language}</div>
-                      <div css={{...cellStyle, ...columnStyles[3]}}>{impl.formatLibraries()}</div>
+                      <div css={{...cellStyle, ...columnStyles[2]}}>
+                        {implementation.frontendEnvironment !== undefined
+                          ? (frontendEnvironments as any)[implementation.frontendEnvironment].label
+                          : ''}
+                      </div>
+                      <div css={{...cellStyle, ...columnStyles[3]}}>{implementation.language}</div>
                       <div css={{...cellStyle, ...columnStyles[4]}}>
-                        {formatDistanceToNowStrict(impl.createdAt, {addSuffix: true})}
+                        {implementation.formatLibraries()}
+                      </div>
+                      <div css={{...cellStyle, ...columnStyles[5]}}>
+                        {formatDistanceToNowStrict(implementation.createdAt, {addSuffix: true})}
                       </div>
                     </div>
                   );
@@ -510,6 +556,12 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
     formatRepositoryURL() {
       return this.repositoryURL.slice('https://github.com/'.length);
+    }
+
+    formatFrontendEnvironment() {
+      return this.frontendEnvironment !== undefined
+        ? frontendEnvironments[this.frontendEnvironment].label
+        : '';
     }
 
     formatLibraries() {

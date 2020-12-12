@@ -3,11 +3,11 @@ import {Routable, route} from '@layr/routable';
 import {Fragment} from 'react';
 import {jsx, useTheme, Theme} from '@emotion/react';
 import {view, useAsyncMemo} from '@layr/react-integration';
-import {Box, StarIcon} from '@emotion-kit/react';
+import {Box, Badge, StarIcon} from '@emotion-kit/react';
 import sortBy from 'lodash/sortBy';
 
 import {User} from './user';
-import {Implementation, categories} from './implementation';
+import {Implementation, implementationCategories} from './implementation';
 import type {Common} from './common';
 import type {ImplementationCategory} from '../../../backend/src/components/implementation';
 
@@ -44,7 +44,13 @@ export class Home extends Routable(Component) {
     const [implementations, , loadingError] = useAsyncMemo(async () => {
       return await Implementation.find(
         {category: currentCategory, status: 'approved'},
-        {repositoryURL: true, language: true, libraries: true, numberOfStars: true},
+        {
+          repositoryURL: true,
+          frontendEnvironment: true,
+          language: true,
+          libraries: true,
+          numberOfStars: true
+        },
         {sort: {numberOfStars: 'desc'}}
       );
     }, [currentCategory]);
@@ -97,19 +103,33 @@ export class Home extends Routable(Component) {
                             lineHeight: theme.lineHeights.small
                           })}
                         >
-                          <div
-                            css={{
-                              fontSize: theme.fontSizes.large,
-                              fontWeight: theme.fontWeights.semibold
-                            }}
-                          >
-                            {implementation.formatLibraries()}
+                          <div css={{display: 'flex', alignItems: 'center'}}>
+                            <div
+                              css={{
+                                fontSize: theme.fontSizes.large,
+                                fontWeight: theme.fontWeights.semibold
+                              }}
+                            >
+                              {implementation.formatLibraries()}
+                            </div>
+                            {implementation.frontendEnvironment !== undefined &&
+                              implementation.frontendEnvironment !== 'web' && (
+                                <Badge
+                                  color="primary"
+                                  variant="outline"
+                                  css={{marginLeft: '.75rem'}}
+                                >
+                                  {implementation.formatFrontendEnvironment()}
+                                </Badge>
+                              )}
                           </div>
                           <div css={{marginTop: '.3rem', color: theme.colors.text.muted}}>
                             {implementation.formatRepositoryURL()}
                           </div>
                         </div>
+
                         <div css={{width: '150px', lineHeight: 1}}>{implementation.language}</div>
+
                         <div
                           css={{
                             width: '90px',
@@ -210,7 +230,7 @@ export class Home extends Routable(Component) {
             }
           })}
         >
-          {categories[category].label}
+          {implementationCategories[category].label}
         </div>
       </this.Main.Link>
     );
