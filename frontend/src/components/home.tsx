@@ -10,6 +10,8 @@ import {User} from './user';
 import {Implementation, implementationCategories} from './implementation';
 import type {Common} from './common';
 import type {ImplementationCategory} from '../../../backend/src/components/implementation';
+// @ts-ignore
+import conduitScreenshot from '../assets/conduit-screenshot-20201213.immutable.png';
 
 const filterHeaderStyle = (theme: Theme) =>
   ({
@@ -31,11 +33,58 @@ export class Home extends Routable(Component) {
   @consume() static Common: typeof Common;
 
   @route('/\\?:category&:language') @view() static Main({
-    category: currentCategory = 'frontend',
-    language: currentLanguage = 'all'
+    category,
+    language
   }: {
-    category: ImplementationCategory;
-    language: string;
+    category?: ImplementationCategory;
+    language?: string;
+  }) {
+    const theme = useTheme();
+
+    return (
+      <div css={{margin: '3.5rem 0 4rem 0'}}>
+        {category === undefined && language === undefined && (
+          <div css={{textAlign: 'center', marginBottom: '3.3rem'}}>
+            <a href="https://demo.realworld.io/" target="_blank">
+              <img
+                src={conduitScreenshot}
+                alt="Application screenshot"
+                css={{width: 250, marginTop: '-.5rem', marginBottom: '-1.5rem'}}
+              />
+            </a>
+            <h2
+              css={theme.responsive({
+                fontSize: ['250%', , , '200%'],
+                fontWeight: theme.fontWeights.bold
+              })}
+            >
+              The mother of all demo apps
+            </h2>
+            <p
+              css={{
+                fontSize: theme.fontSizes.large,
+                color: theme.colors.text.muted,
+                lineHeight: theme.lineHeights.small
+              }}
+            >
+              See how the exact same application is built using different libraries and frameworks.
+            </p>
+          </div>
+        )}
+
+        <this.Implementations category={category} language={language} />
+      </div>
+    );
+  }
+
+  @route('/\\?:category&:language') @view() static Implementations({
+    category: currentCategory = 'frontend',
+    language: currentLanguage = 'all',
+    className
+  }: {
+    category?: ImplementationCategory;
+    language?: string;
+    className?: string;
   }) {
     const {Implementation, Common} = this;
 
@@ -60,7 +109,7 @@ export class Home extends Routable(Component) {
     }
 
     return (
-      <div css={{margin: '3rem 0 4rem 0'}}>
+      <div className={className}>
         <this.CategoryFilter currentCategory={currentCategory} />
 
         {implementations === undefined && (
@@ -123,7 +172,13 @@ export class Home extends Routable(Component) {
                                 </Badge>
                               )}
                           </div>
-                          <div css={{marginTop: '.3rem', color: theme.colors.text.muted}}>
+                          <div
+                            css={{
+                              marginTop: '.3rem',
+                              color: theme.colors.text.muted,
+                              wordBreak: 'break-word'
+                            }}
+                          >
                             {implementation.formatRepositoryURL()}
                           </div>
                         </div>
