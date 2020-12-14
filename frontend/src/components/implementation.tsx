@@ -29,6 +29,13 @@ export const frontendEnvironments = {
   desktop: {label: 'Desktop'}
 };
 
+export const implementationStatus = {
+  pending: {label: 'Pending'},
+  reviewing: {label: 'Reviewing'},
+  approved: {label: 'Approved'},
+  rejected: {label: 'Rejected'}
+};
+
 const popularLanguages = [
   'C',
   'C#',
@@ -163,15 +170,235 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
       });
     }
 
+    @route('/implementations/:id/edit') @view() static Edit({id}: {id: string}) {
+      const {Common} = this;
+
+      return Common.ensureUser(() => {
+        const [implementation, , loadingError] = useAsyncMemo(async () => {
+          return await this.get(id, {
+            repositoryURL: true,
+            category: true,
+            frontendEnvironment: true,
+            language: true,
+            libraries: true
+          });
+        }, [id]);
+
+        if (loadingError !== undefined) {
+          return (
+            <Common.ErrorLayout>
+              <Common.ErrorMessage error={loadingError} />
+            </Common.ErrorLayout>
+          );
+        }
+
+        if (implementation === undefined) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <implementation.Form
+            title="Edit an Implementation"
+            onSave={async () => {
+              await implementation.save();
+              this.OwnedList.navigate();
+            }}
+            onDelete={async () => {
+              await implementation.delete();
+              this.OwnedList.navigate();
+            }}
+            onCancel={async () => {
+              this.OwnedList.navigate();
+            }}
+          />
+        );
+      });
+    }
+
+    @route('/user/implementations') @view() static OwnedList() {
+      const {Common} = this;
+
+      return Common.ensureUser((owner) => {
+        const [implementations] = useAsyncMemo(async () => {
+          return await this.find(
+            {owner},
+            {
+              repositoryURL: true,
+              createdAt: true,
+              status: true
+            },
+            {sort: {createdAt: 'desc'}}
+          );
+        });
+
+        if (implementations === undefined) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <div css={{margin: '2rem 0 3rem 0'}}>
+            <h3>Your Implementations</h3>
+
+            {implementations.length > 0 && (
+              <Common.Table
+                columns={[
+                  {
+                    header: 'Repository',
+                    body: (implementation) => implementation.formatRepositoryURL()
+                  },
+                  {
+                    width: 125,
+                    header: 'Status',
+                    body: (implementation) => implementation.formatStatus()
+                  },
+                  {
+                    width: 125,
+                    header: 'Submitted',
+                    body: (implementation) =>
+                      formatDistanceToNowStrict(implementation.createdAt, {addSuffix: true})
+                  }
+                ]}
+                items={implementations}
+                onItemClick={(implementation) => {
+                  this.Edit.navigate(implementation);
+                }}
+                css={{marginTop: '2rem'}}
+              />
+            )}
+
+            {implementations.length === 0 && (
+              <Box css={{marginTop: '2rem', padding: '1rem'}}>You have no implementations.</Box>
+            )}
+          </div>
+        );
+      });
+    }
+
+    @route('/implementations/review') @view() static ReviewList() {
+      const {Common} = this;
+
+      return Common.ensureAdmin(() => {
+        const [implementations] = useAsyncMemo(async () => {
+          return await this.findSubmissionsToReview();
+        });
+
+        if (implementations === undefined) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <div css={{margin: '2rem 0 3rem 0'}}>
+            <h3>Review Submissions</h3>
+
+            {implementations.length > 0 && (
+              <Common.Table
+                columns={[
+                  {
+                    width: 275,
+                    header: 'Repository',
+                    body: (implementation) => implementation.formatRepositoryURL()
+                  },
+                  {
+                    width: 100,
+                    header: 'Category',
+                    body: (implementation) =>
+                      (implementationCategories as any)[implementation.category].label
+                  },
+                  {
+                    width: 125,
+                    header: 'Environment',
+                    body: (implementation) =>
+                      implementation.frontendEnvironment !== undefined
+                        ? (frontendEnvironments as any)[implementation.frontendEnvironment].label
+                        : ''
+                  },
+                  {
+                    width: 125,
+                    header: 'Language',
+                    body: (implementation) => implementation.language
+                  },
+                  {
+                    header: 'Libraries/Frameworks',
+                    body: (implementation) => implementation.formatLibraries()
+                  },
+                  {
+                    width: 125,
+                    header: 'Submitted',
+                    body: (implementation) =>
+                      formatDistanceToNowStrict(implementation.createdAt, {addSuffix: true})
+                  }
+                ]}
+                items={implementations}
+                onItemClick={(implementation) => {
+                  this.Review.navigate(implementation);
+                }}
+                css={{marginTop: '2rem'}}
+              />
+            )}
+
+            {implementations.length === 0 && (
+              <Box css={{marginTop: '2rem', padding: '1rem'}}>
+                There are no submissions to review.
+              </Box>
+            )}
+          </div>
+        );
+      });
+    }
+
+    @route('/implementations/:id/review') @view() static Review({id}: {id: string}) {
+      const {Common} = this;
+
+      return Common.ensureAdmin(() => {
+        const [implementation, , loadingError] = useAsyncMemo(async () => {
+          return await this.reviewSubmission(id);
+        }, [id]);
+
+        if (loadingError !== undefined) {
+          return (
+            <Common.ErrorLayout>
+              <Common.ErrorMessage error={loadingError} />
+            </Common.ErrorLayout>
+          );
+        }
+
+        if (implementation === undefined) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <implementation.Form
+            title="Review a Submission"
+            onApprove={async () => {
+              await implementation.approveSubmission();
+              this.ReviewList.navigate();
+            }}
+            onReject={async () => {
+              await implementation.rejectSubmission();
+              this.ReviewList.navigate();
+            }}
+            onCancel={async () => {
+              await implementation.cancelSubmissionReview();
+              this.ReviewList.navigate();
+            }}
+          />
+        );
+      });
+    }
+
     @view() Form({
       title,
       onSubmit,
+      onSave,
+      onDelete,
       onApprove,
       onReject,
       onCancel
     }: {
       title: string;
       onSubmit?: () => Promise<any>;
+      onSave?: () => Promise<void>;
+      onDelete?: () => Promise<void>;
       onApprove?: () => Promise<void>;
       onReject?: () => Promise<void>;
       onCancel: () => Promise<void>;
@@ -191,6 +418,17 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
         await onSubmit!();
       });
 
+      const [handleSave, isSaving, saveError] = useAsyncCallback(async () => {
+        cleanAttributes();
+        await onSave!();
+      });
+
+      const [handleDelete, isDeleting, deleteError] = useAsyncCallback(async () => {
+        if (confirm('Are you sure you want to delete this implementation?')) {
+          await onDelete!();
+        }
+      });
+
       const [handleApprove, isApproving, approveError] = useAsyncCallback(async () => {
         cleanAttributes();
         await onApprove!();
@@ -204,8 +442,10 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
         await onCancel();
       });
 
-      const isBusy = isSubmitting || isApproving || isRejecting || isCanceling;
-      const error = submitError || approveError || rejectError || cancelError;
+      const isBusy =
+        isSubmitting || isSaving || isDeleting || isApproving || isRejecting || isCanceling;
+      const error =
+        submitError || saveError || deleteError || approveError || rejectError || cancelError;
 
       if (isBusy) {
         return <Common.LoadingSpinner />;
@@ -237,16 +477,21 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
         <Common.Dialog title={title}>
           <form
             onSubmit={
-              onSubmit
+              onSubmit || onSave
                 ? (event) => {
                     event.preventDefault();
-                    handleSubmit();
+
+                    if (onSubmit) {
+                      handleSubmit();
+                    } else if (onSave) {
+                      handleSave();
+                    }
                   }
                 : undefined
             }
             autoComplete="off"
           >
-            {error && <Common.ErrorMessage error={error} />}
+            {error && <Common.ErrorBox error={error} />}
 
             <div css={controlStyle}>
               <label htmlFor="repositoryURL" css={labelStyle}>
@@ -366,6 +611,24 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                 </Button>
               )}
 
+              {onSave && (
+                <Button type="submit" color="primary" css={{margin: '1rem 1rem 0 0'}}>
+                  Save
+                </Button>
+              )}
+
+              {onDelete && (
+                <Button
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleDelete();
+                  }}
+                  css={{margin: '1rem 1rem 0 0'}}
+                >
+                  Delete
+                </Button>
+              )}
+
               {onApprove && (
                 <Button
                   onClick={(event) => {
@@ -408,152 +671,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
       );
     }
 
-    @route('/implementations/review') @view() static ReviewList() {
-      const {Common} = this;
-
-      return Common.ensureAdmin(() => {
-        const theme = useTheme();
-
-        const [implementations] = useAsyncMemo(async () => {
-          return await this.findSubmissionsToReview();
-        });
-
-        if (implementations === undefined) {
-          return <Common.LoadingSpinner />;
-        }
-
-        const headerStyle = {
-          display: 'flex',
-          paddingBottom: '.5rem',
-          fontSize: '75%',
-          color: theme.colors.text.muted,
-          fontWeight: theme.fontWeights.bold,
-          textTransform: 'uppercase',
-          letterSpacing: '.5px'
-        } as const;
-
-        const rowStyle = {
-          'display': 'flex',
-          'marginBottom': '-1px',
-          'padding': '.5rem 0',
-          'borderTop': `1px solid ${theme.colors.border.normal}`,
-          'borderBottom': `1px solid ${theme.colors.border.normal}`,
-          'cursor': 'pointer',
-          ':hover': {
-            backgroundColor: theme.colors.background.highlighted
-          }
-        } as const;
-
-        const columnStyles = [
-          {width: '275px'},
-          {width: '100px'},
-          {width: '125px'},
-          {width: '125px'},
-          {flex: 1},
-          {paddingRight: 0, width: '125px'}
-        ] as const;
-
-        const cellStyle = {
-          paddingRight: '1rem',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        } as const;
-
-        return (
-          <div css={{marginTop: '2rem'}}>
-            <h3>Review Submissions</h3>
-
-            {implementations.length > 0 && (
-              <div css={{marginTop: '2rem'}}>
-                <div css={headerStyle}>
-                  <div css={{...cellStyle, ...columnStyles[0]}}>Repository</div>
-                  <div css={{...cellStyle, ...columnStyles[1]}}>Category</div>
-                  <div css={{...cellStyle, ...columnStyles[2]}}>Environment</div>
-                  <div css={{...cellStyle, ...columnStyles[3]}}>Language</div>
-                  <div css={{...cellStyle, ...columnStyles[4]}}>Libraries/Frameworks</div>
-                  <div css={{...cellStyle, ...columnStyles[5]}}>Submitted</div>
-                </div>
-
-                {implementations.map((implementation) => {
-                  return (
-                    <div
-                      key={implementation.id}
-                      onClick={() => {
-                        this.Review.navigate(implementation);
-                      }}
-                      css={rowStyle}
-                    >
-                      <div css={{...cellStyle, ...columnStyles[0]}}>
-                        {implementation.formatRepositoryURL()}
-                      </div>
-                      <div css={{...cellStyle, ...columnStyles[1]}}>
-                        {(implementationCategories as any)[implementation.category].label}
-                      </div>
-                      <div css={{...cellStyle, ...columnStyles[2]}}>
-                        {implementation.frontendEnvironment !== undefined
-                          ? (frontendEnvironments as any)[implementation.frontendEnvironment].label
-                          : ''}
-                      </div>
-                      <div css={{...cellStyle, ...columnStyles[3]}}>{implementation.language}</div>
-                      <div css={{...cellStyle, ...columnStyles[4]}}>
-                        {implementation.formatLibraries()}
-                      </div>
-                      <div css={{...cellStyle, ...columnStyles[5]}}>
-                        {formatDistanceToNowStrict(implementation.createdAt, {addSuffix: true})}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {implementations.length === 0 && (
-              <Box css={{marginTop: '2rem', padding: '1rem'}}>
-                There are no submissions to review.
-              </Box>
-            )}
-          </div>
-        );
-      });
-    }
-
-    @route('/implementations/:id/review') @view() static Review({id}: {id: string}) {
-      const {Common} = this;
-
-      return Common.ensureAdmin(() => {
-        const [implementation, , loadingError] = useAsyncMemo(async () => {
-          return await this.reviewSubmission(id);
-        }, [id]);
-
-        if (loadingError !== undefined) {
-          return <Common.ErrorMessage error={loadingError} />;
-        }
-
-        if (implementation === undefined) {
-          return <Common.LoadingSpinner />;
-        }
-
-        return (
-          <implementation.Form
-            title="Review a Submission"
-            onApprove={async () => {
-              await implementation.approveSubmission();
-              this.ReviewList.navigate();
-            }}
-            onReject={async () => {
-              await implementation.rejectSubmission();
-              this.ReviewList.navigate();
-            }}
-            onCancel={async () => {
-              await implementation.cancelSubmissionReview();
-              this.ReviewList.navigate();
-            }}
-          />
-        );
-      });
-    }
-
     formatRepositoryURL() {
       return this.repositoryURL.slice('https://github.com/'.length);
     }
@@ -570,6 +687,10 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
     formatNumberOfStars() {
       return numeral(this.numberOfStars).format('0.[0]a');
+    }
+
+    formatStatus() {
+      return implementationStatus[this.status].label;
     }
   }
 

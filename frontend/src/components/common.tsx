@@ -1,6 +1,6 @@
 import {Component, consume} from '@layr/component';
 import {Routable} from '@layr/routable';
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import {view, useDelay} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Button} from '@emotion-starter/react';
@@ -135,6 +135,22 @@ export class Common extends Routable(Component) {
     return <this.ErrorLayout>Sorry, there is nothing there.</this.ErrorLayout>;
   }
 
+  @view() static ErrorBox({
+    error,
+    onRetry,
+    className
+  }: {
+    error?: {displayMessage?: string};
+    onRetry?: Function;
+    className?: string;
+  }) {
+    return (
+      <Box className={className} css={{marginBottom: '2rem', padding: '.5rem 1rem'}}>
+        <this.ErrorMessage error={error} onRetry={onRetry} />
+      </Box>
+    );
+  }
+
   @view() static ErrorMessage({
     error,
     onRetry,
@@ -149,17 +165,14 @@ export class Common extends Routable(Component) {
     const message = error?.displayMessage || 'Sorry, an error occurred.';
 
     return (
-      <Box className={className} css={{marginBottom: '2rem', padding: '.5rem 1rem'}}>
+      <div className={className}>
         <div css={{color: theme.colors.negative.normal}}>{message}</div>
         {onRetry && (
-          <>
-            <hr />
-            <div>
-              <Button onClick={() => onRetry()}>Retry</Button>
-            </div>
-          </>
+          <div css={{marginTop: '2rem'}}>
+            <Button onClick={() => onRetry()}>Retry</Button>
+          </div>
         )}
-      </Box>
+      </div>
     );
   }
 
@@ -211,5 +224,98 @@ export class Common extends Routable(Component) {
     }
 
     return null;
+  }
+
+  @view() static Table<ItemType>({
+    columns = [],
+    items = [],
+    onItemClick,
+    className
+  }: {
+    columns?: {
+      width?: number | string;
+      header?: React.ReactNode;
+      body?: (item: ItemType) => React.ReactNode;
+    }[];
+    items?: ItemType[];
+    onItemClick?: (item: ItemType) => unknown;
+    className?: string;
+  }) {
+    const theme = useTheme();
+
+    if (columns === undefined || items === undefined) {
+      return null;
+    }
+
+    const rowStyle = {borderBottom: `1px solid ${theme.colors.border.normal}`};
+
+    const cellStyle = (columnIndex: number, {isHeader = false}: {isHeader?: boolean} = {}) => {
+      const isLastColumn = columnIndex === columns.length - 1;
+
+      return {
+        width: columns[columnIndex].width,
+        paddingTop: !isHeader ? '.75rem' : 0,
+        paddingRight: !isLastColumn ? '1rem' : 0,
+        paddingBottom: '.75rem',
+        paddingLeft: 0,
+        textAlign: 'left' as const,
+        border: 'none'
+      };
+    };
+
+    const headerRowStyle = {
+      ...rowStyle,
+      fontSize: '75%',
+      color: theme.colors.text.muted,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '.5px'
+    };
+
+    const bodyRowStyle = {
+      ...rowStyle,
+      'cursor': 'pointer',
+      ':hover': {backgroundColor: theme.colors.background.highlighted}
+    };
+
+    return (
+      <table className={className} css={{width: '100%', lineHeight: theme.lineHeights.small}}>
+        <thead>
+          <tr css={headerRowStyle}>
+            {columns.map((column, columnIndex) => {
+              return (
+                <th key={columnIndex} css={cellStyle(columnIndex, {isHeader: true})}>
+                  {column.header}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+
+        <tbody>
+          {items.map((item, itemIndex) => {
+            return (
+              <tr
+                key={itemIndex}
+                onClick={
+                  onItemClick &&
+                  (() => {
+                    onItemClick(item);
+                  })
+                }
+                css={bodyRowStyle}
+              >
+                {columns.map((column, columIndex) => {
+                  return (
+                    <td key={columIndex} css={cellStyle(columIndex)}>
+                      {column.body && column.body(item)}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
   }
 }

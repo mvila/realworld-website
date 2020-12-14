@@ -105,7 +105,11 @@ export class Home extends Routable(Component) {
     }, [currentCategory]);
 
     if (loadingError) {
-      return <Common.ErrorMessage error={loadingError} />;
+      return (
+        <Common.ErrorLayout>
+          <Common.ErrorMessage error={loadingError} />
+        </Common.ErrorLayout>
+      );
     }
 
     return (

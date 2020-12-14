@@ -7,6 +7,7 @@ import {DropdownMenu} from '@emotion-kit/react';
 
 import type {User as BackendUser} from '../../../backend/src/components/user';
 import type {Session} from './session';
+import type {Implementation} from './implementation';
 import type {Home} from './home';
 import type {Common} from './common';
 
@@ -21,10 +22,14 @@ export const getUser = (Base: typeof BackendUser) => {
     ['constructor']!: typeof User;
 
     @consume() static Session: typeof Session;
+    @consume() static Implementation: typeof Implementation;
     @consume() static Home: typeof Home;
     @consume() static Common: typeof Common;
 
     @view() Menu() {
+      const User = this.constructor;
+      const {Implementation} = User;
+
       return (
         <DropdownMenu
           items={[
@@ -40,9 +45,16 @@ export const getUser = (Base: typeof BackendUser) => {
             },
             {type: 'divider'},
             {
+              label: 'Your implementations',
+              onClick: () => {
+                Implementation.OwnedList.navigate();
+              }
+            },
+            {type: 'divider'},
+            {
               label: 'Sign out',
               onClick: () => {
-                this.constructor.SignOut.navigate();
+                User.SignOut.navigate();
               }
             }
           ]}
