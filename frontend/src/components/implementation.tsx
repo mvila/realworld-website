@@ -170,7 +170,13 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
       });
     }
 
-    @route('/implementations/:id/edit') @view() static Edit({id}: {id: string}) {
+    @route('/implementations/:id/edit\\?:callbackURL') @view() static Edit({
+      id,
+      callbackURL = this.Home.Main.generateURL()
+    }: {
+      id: string;
+      callbackURL?: string;
+    }) {
       const {Common} = this;
 
       return Common.ensureUser(() => {
@@ -201,14 +207,14 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
             title="Edit an Implementation"
             onSave={async () => {
               await implementation.save();
-              this.OwnedList.navigate();
+              this.getRouter().navigate(callbackURL);
             }}
             onDelete={async () => {
               await implementation.delete();
-              this.OwnedList.navigate();
+              this.getRouter().navigate(callbackURL);
             }}
             onCancel={async () => {
-              this.OwnedList.navigate();
+              this.getRouter().navigate(callbackURL);
             }}
           />
         );
@@ -259,8 +265,8 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                   }
                 ]}
                 items={implementations}
-                onItemClick={(implementation) => {
-                  this.Edit.navigate(implementation);
+                onItemClick={({id}) => {
+                  this.Edit.navigate({id, callbackURL: this.OwnedList.generatePath()});
                 }}
                 css={{marginTop: '2rem'}}
               />
@@ -268,6 +274,65 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
             {implementations.length === 0 && (
               <Box css={{marginTop: '2rem', padding: '1rem'}}>You have no implementations.</Box>
+            )}
+          </div>
+        );
+      });
+    }
+
+    @route('/implementations') @view() static List() {
+      const {Common} = this;
+
+      return Common.ensureAdmin(() => {
+        const [implementations] = useAsyncMemo(async () => {
+          return await this.find(
+            {},
+            {
+              repositoryURL: true,
+              createdAt: true,
+              status: true
+            },
+            {sort: {createdAt: 'desc'}}
+          );
+        });
+
+        if (implementations === undefined) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <div css={{margin: '2rem 0 3rem 0'}}>
+            <h3>Edit Implementations</h3>
+
+            {implementations.length > 0 && (
+              <Common.Table
+                columns={[
+                  {
+                    header: 'Repository',
+                    body: (implementation) => implementation.formatRepositoryURL()
+                  },
+                  {
+                    width: 125,
+                    header: 'Status',
+                    body: (implementation) => implementation.formatStatus()
+                  },
+                  {
+                    width: 125,
+                    header: 'Submitted',
+                    body: (implementation) =>
+                      formatDistanceToNowStrict(implementation.createdAt, {addSuffix: true})
+                  }
+                ]}
+                items={implementations}
+                onItemClick={({id}) => {
+                  this.Edit.navigate({id, callbackURL: this.List.generatePath()});
+                }}
+                css={{marginTop: '2rem'}}
+              />
+            )}
+
+            {implementations.length === 0 && (
+              <Box css={{marginTop: '2rem', padding: '1rem'}}>There are no implementations.</Box>
             )}
           </div>
         );

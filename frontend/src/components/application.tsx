@@ -147,6 +147,12 @@ export const getApplication = async ({backendURL}: {backendURL: string}) => {
                         onClick: () => {
                           Implementation.ReviewList.navigate();
                         }
+                      },
+                      {
+                        label: 'Edit implementations',
+                        onClick: () => {
+                          Implementation.List.navigate();
+                        }
                       }
                     ]}
                   >
