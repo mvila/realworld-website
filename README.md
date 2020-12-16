@@ -2,6 +2,10 @@
 
 This repository contains the source code of the [RealWorld](https://realworld.io) website.
 
+## About
+
+The website is a single-page application created with [Layr](https://github.com/layrjs/layr). The frontend is statically hosted in AWS S3 + CloudFront and the backend is serverlessly hosted in AWS Lambda + API Gateway. Regarding the database, it is a free-tier MongoDB Atlas cluster with a daily backup that is handled by a Lambda function.
+
 ## Install
 
 Install the npm dependencies with:
