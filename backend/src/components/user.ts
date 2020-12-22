@@ -48,9 +48,7 @@ export class User extends Entity {
       accessToken
     });
 
-    let user = await this.fork()
-      .detach()
-      .get({githubId}, {githubData: true}, {throwIfMissing: false});
+    let user = await this.get({githubId}, {githubData: true}, {throwIfMissing: false});
 
     if (user !== undefined) {
       if (!isEqual(githubData, user.githubData)) {
