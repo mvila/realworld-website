@@ -72,12 +72,12 @@ export class Home extends Routable(Component) {
           </div>
         )}
 
-        <this.Implementations category={category} language={language} />
+        <this.Implementations key={category} category={category} language={language} />
       </div>
     );
   }
 
-  @route('/\\?:category&:language') @view() static Implementations({
+  @view() static Implementations({
     category: currentCategory = 'frontend',
     language: currentLanguage = 'all',
     className
