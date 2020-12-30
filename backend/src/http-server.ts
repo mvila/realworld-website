@@ -1,14 +1,11 @@
 import {ComponentHTTPServer} from '@layr/component-http-server';
+import env from 'env-var';
 
 import {server} from './server';
 
-const backendURL = process.env.BACKEND_URL;
+const backendURL = env.get('BACKEND_URL').required().asUrlObject();
 
-if (!backendURL) {
-  throw new Error(`'BACKEND_URL' environment variable is missing`);
-}
-
-const port = Number(new URL(backendURL).port);
+const port = Number(backendURL.port);
 
 if (!port) {
   throw new Error(`'BACKEND_URL' environment variable should include a port`);

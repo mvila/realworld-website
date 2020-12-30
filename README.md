@@ -44,6 +44,22 @@ FRONTEND_URL=http://localhost:15541 \
 
 The website should then be available at http://localhost:15541.
 
+### Migrating the database
+
+Navigate to the `./backend` directory and execute the following command:
+
+```sh
+FRONTEND_URL=http://localhost:15541 \
+  BACKEND_URL=http://localhost:15542 \
+  EMAIL_ADDRESS="********" \
+  MONGODB_STORE_CONNECTION_STRING=mongodb://test:test@localhost:15543/test \
+  GITHUB_CLIENT_ID="********" \
+  GITHUB_CLIENT_SECRET="********" \
+  GITHUB_PERSONAL_ACCESS_TOKEN="********" \
+  JWT_SECRET="********" \
+  npm run migrate
+```
+
 ## Debug
 
 ### Client

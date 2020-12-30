@@ -1,5 +1,6 @@
 import {consume, expose, validators} from '@layr/component';
-import {attribute, method} from '@layr/storable';
+import {attribute, method, index} from '@layr/storable';
+import env from 'env-var';
 
 import type {User} from './user';
 import {Entity} from './entity';
@@ -9,11 +10,7 @@ import type {Mailer} from './mailer';
 
 const {maxLength, rangeLength, match, anyOf, integer, positive} = validators;
 
-const frontendURL = process.env.FRONTEND_URL;
-
-if (!frontendURL) {
-  throw new Error(`'FRONTEND_URL' environment variable is missing`);
-}
+const frontendURL = env.get('FRONTEND_URL').required().asUrlString();
 
 export type ImplementationCategory = 'frontend' | 'backend' | 'fullstack';
 export type FrontendEnvironment = 'web' | 'mobile' | 'desktop';
@@ -30,6 +27,7 @@ const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
     delete: {call: ['owner', 'admin']}
   }
 })
+@index({category: 'asc', status: 'asc', numberOfStars: 'desc'})
 export class Implementation extends WithOwner(Entity) {
   ['constructor']!: typeof Implementation;
 
@@ -43,18 +41,21 @@ export class Implementation extends WithOwner(Entity) {
   repositoryURL!: string;
 
   @expose({get: true, set: ['owner', 'admin']})
+  @index()
   @attribute('string', {
     validators: [anyOf(['frontend', 'backend', 'fullstack'])]
   })
   category!: ImplementationCategory;
 
   @expose({get: true, set: ['owner', 'admin']})
+  @index()
   @attribute('string?', {
     validators: [anyOf([undefined, 'web', 'mobile', 'desktop'])]
   })
   frontendEnvironment?: FrontendEnvironment;
 
   @expose({get: true, set: ['owner', 'admin']})
+  @index()
   @attribute('string', {validators: [rangeLength([1, 100])]})
   language!: string;
 
@@ -66,6 +67,7 @@ export class Implementation extends WithOwner(Entity) {
   libraries!: string[];
 
   @expose({get: ['owner', 'admin']})
+  @index()
   @attribute('string', {
     validators: [anyOf(['pending', 'reviewing', 'approved', 'rejected'])]
   })
@@ -78,12 +80,13 @@ export class Implementation extends WithOwner(Entity) {
   @attribute('Date?') reviewStartedOn?: Date;
 
   @expose({get: true})
+  @index()
   @attribute('number', {validators: [integer(), positive()]})
   numberOfStars = 0;
 
   @attribute() githubData!: any;
 
-  @attribute() githubDataFetchedOn?: Date;
+  @index() @attribute() githubDataFetchedOn?: Date;
 
   @expose({call: 'owner'}) @method() async submit() {
     const {Session, GitHub, Mailer} = this.constructor;
@@ -125,7 +128,7 @@ export class Implementation extends WithOwner(Entity) {
     try {
       await Mailer.sendMail({
         subject: 'A new RealWorld implementation has been submitted',
-        text: `A new RealWorld implementation has been submitted:\n\n${frontendURL}/implementations/${this.id}/review\n`
+        text: `A new RealWorld implementation has been submitted:\n\n${frontendURL}implementations/${this.id}/review\n`
       });
     } catch (error) {
       console.error(error);
@@ -230,7 +233,7 @@ export class Implementation extends WithOwner(Entity) {
         html: `
 <p>Hi, ${this.owner.username},</p>
 
-<p>Your <a href="${this.repositoryURL}">RealWorld implementation</a> has been approved and is now listed on the <a href="${frontendURL}/?category=${this.category}">home page</a> of our website.</p>
+<p>Your <a href="${this.repositoryURL}">RealWorld implementation</a> has been approved and is now listed on the <a href="${frontendURL}?category=${this.category}">home page</a> of our website.</p>
 
 <p>Thanks a lot for your contribution!</p>
 

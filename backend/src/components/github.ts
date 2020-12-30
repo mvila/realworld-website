@@ -1,32 +1,19 @@
 import {Component} from '@layr/component';
 import fetch from 'cross-fetch';
+import env from 'env-var';
 
-const GITHUB_API_BASE_URL = 'https://api.github.com';
+const GITHUB_API_BASE_URL = 'https://api.github.com/';
 const GITHUB_LOGIN_URL = 'https://github.com/login/oauth/access_token';
 
-const githubClientId = process.env.GITHUB_CLIENT_ID;
-
-if (!githubClientId) {
-  throw new Error(`'GITHUB_CLIENT_ID' environment variable is missing`);
-}
-
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-if (!githubClientSecret) {
-  throw new Error(`'GITHUB_CLIENT_SECRET' environment variable is missing`);
-}
-
-const githubPersonalAccessToken = process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-
-if (!githubPersonalAccessToken) {
-  throw new Error(`'GITHUB_PERSONAL_ACCESS_TOKEN' environment variable is missing`);
-}
+const githubClientId = env.get('GITHUB_CLIENT_ID').required().asString();
+const githubClientSecret = env.get('GITHUB_CLIENT_SECRET').required().asString();
+const githubPersonalAccessToken = env.get('GITHUB_PERSONAL_ACCESS_TOKEN').required().asString();
 
 export class GitHub extends Component {
   static async fetchUser({accessToken}: {accessToken: string}) {
     const [userData, emailsData] = await Promise.all([
-      this.fetch('/user', {accessToken}),
-      this.fetch('/user/emails', {accessToken})
+      this.fetch('user', {accessToken}),
+      this.fetch('user/emails', {accessToken})
     ]);
 
     const githubData = {user: userData, emails: emailsData};
@@ -59,7 +46,7 @@ export class GitHub extends Component {
     let githubData;
 
     try {
-      githubData = await this.fetch(`/repos/${owner}/${name}`);
+      githubData = await this.fetch(`repos/${owner}/${name}`);
     } catch (error) {
       if (error.status === 404) {
         throw Object.assign(new Error('Repository not found'), {
@@ -87,7 +74,7 @@ export class GitHub extends Component {
     name: string;
     userId: number;
   }) {
-    const contributors = await this.fetch(`/repos/${owner}/${name}/contributors?per_page=100`);
+    const contributors = await this.fetch(`repos/${owner}/${name}/contributors?per_page=100`);
 
     for (const contributor of contributors) {
       if (contributor.id === userId) {
