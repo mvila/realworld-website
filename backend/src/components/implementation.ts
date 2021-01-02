@@ -28,6 +28,7 @@ const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
   }
 })
 @index({category: 'asc', status: 'asc', numberOfStars: 'desc'})
+@index({owner: 'asc', createdAt: 'desc'})
 export class Implementation extends WithOwner(Entity) {
   ['constructor']!: typeof Implementation;
 
