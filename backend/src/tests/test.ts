@@ -33,7 +33,7 @@ export async function refreshGitHubData() {
 export async function refreshAllGitHubData() {
   const {Implementation} = Application;
 
-  await Implementation._refreshGitHubData();
+  await Implementation.refreshGitHubData();
 }
 
 main().catch((error) => {

@@ -319,20 +319,7 @@ export class Implementation extends WithOwner(Entity) {
     await this.save({status: true, reviewer: true, reviewStartedOn: true});
   }
 
-  @expose({call: true}) @method() static async refreshGitHubData() {
-    // This method is executed 24 times a day, and each implementation should be
-    // refreshed once a day
-
-    // Trigger the execution in development mode with:
-    // time curl -v -X POST -H "Content-Type: application/json" -d '{"query": {"<=": {"__component": "typeof Implementation"}, "refreshGitHubData=>": {"()": []}}}' http://localhost:15542
-
-    const numberOfImplementations = await this.count();
-    const limit = Math.ceil(numberOfImplementations / 24);
-
-    await this._refreshGitHubData({limit});
-  }
-
-  static async _refreshGitHubData({limit}: {limit?: number} = {}) {
+  static async refreshGitHubData({limit}: {limit?: number} = {}) {
     const implementations = await this.find(
       {},
       {repositoryURL: true},

@@ -1,4 +1,4 @@
-import {Component, provide} from '@layr/component';
+import {Component, provide, method, expose} from '@layr/component';
 
 import {User} from './user';
 import {Session} from './session';
@@ -14,4 +14,17 @@ export class Application extends Component {
   @provide() static GitHub = GitHub;
   @provide() static Mailer = Mailer;
   @provide() static JWT = JWT;
+
+  @expose({call: true}) @method() static async runHourlyTask() {
+    // This method is executed 24 times a day
+
+    // Trigger the execution in development mode with:
+    // time curl -v -X POST -H "Content-Type: application/json" -d '{"query": {"<=": {"__component": "typeof Application"}, "runHourlyTask=>": {"()": []}}}' http://localhost:15542
+
+    const {Implementation} = this;
+
+    const numberOfImplementations = await Implementation.count();
+    const limit = Math.ceil(numberOfImplementations / 24);
+    await Implementation.refreshGitHubData({limit});
+  }
 }

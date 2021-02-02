@@ -107,14 +107,14 @@ FRONTEND_URL=https://realworld.mvila.me \
   npm run deploy
 ```
 
-Add an AWS EventBridge rule to automatically refresh the GitHub stars of the implementations:
+Add an AWS EventBridge rule to automatically run an hourly task:
 
-- Name: `refresh-realworld-github-data`
+- Name: `realworld-website-hourly-task`
 - Schedule:
   - Fixed rate every: `1 hour`
 - Target:
   - Lambda function: `backend-realworld-mvila-me`
-  - Constant input: `{"query": {"<=": {"__component": "typeof Implementation"}, "refreshGitHubData=>": {"()": []}}}`
+  - Constant input: `{"query": {"<=": {"__component": "typeof Application"}, "runHourlyTask=>": {"()": []}}}`
 
 ## License
 
