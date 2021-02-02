@@ -92,7 +92,7 @@ export class Home extends Routable(Component) {
 
     const [implementations, , loadingError] = useAsyncMemo(async () => {
       return await Implementation.find(
-        {category: currentCategory, status: 'approved'},
+        {category: currentCategory, status: 'approved', repositoryStatus: 'available'},
         {
           repositoryURL: true,
           frontendEnvironment: true,

@@ -20,15 +20,13 @@ const FRONTEND_ENVIRONMENTS = ['web', 'mobile', 'desktop'] as const;
 
 export type FrontendEnvironment = typeof FRONTEND_ENVIRONMENTS[number];
 
-const IMPLEMENTATION_STATUSES = [
-  'pending',
-  'reviewing',
-  'approved',
-  'rejected',
-  'missing-repository'
-] as const;
+const IMPLEMENTATION_STATUSES = ['pending', 'reviewing', 'approved', 'rejected'] as const;
 
 export type ImplementationStatus = typeof IMPLEMENTATION_STATUSES[number];
+
+const REPOSITORY_STATUSES = ['available', 'archived', 'issues-disabled', 'missing'] as const;
+
+export type RepositoryStatus = typeof REPOSITORY_STATUSES[number];
 
 const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -41,7 +39,7 @@ const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
     delete: {call: ['owner', 'admin']}
   }
 })
-@index({category: 'asc', status: 'asc', numberOfStars: 'desc'})
+@index({category: 'asc', status: 'asc', repositoryStatus: 'asc', numberOfStars: 'desc'})
 @index({owner: 'asc', createdAt: 'desc'})
 export class Implementation extends WithOwner(Entity) {
   ['constructor']!: typeof Implementation;
@@ -54,6 +52,13 @@ export class Implementation extends WithOwner(Entity) {
     validators: [maxLength(500), match(/^https\:\/\/github\.com\//)]
   })
   repositoryURL!: string;
+
+  @expose({get: ['owner', 'admin']})
+  @index()
+  @attribute('string', {
+    validators: [anyOf(REPOSITORY_STATUSES)]
+  })
+  repositoryStatus: RepositoryStatus = 'available';
 
   @expose({get: true, set: ['owner', 'admin']})
   @index()
@@ -100,7 +105,6 @@ export class Implementation extends WithOwner(Entity) {
   numberOfStars = 0;
 
   @expose({get: true})
-  @index()
   @attribute('number?', {validators: [optional([integer(), positive()])]})
   numberOfPendingIssues?: number;
 
@@ -123,7 +127,13 @@ export class Implementation extends WithOwner(Entity) {
 
     const {owner, name} = parseRepositoryURL(this.repositoryURL);
 
-    const {numberOfStars, ownerId, githubData} = await GitHub.fetchRepository({owner, name});
+    const {
+      ownerId,
+      numberOfStars,
+      isArchived,
+      hasIssues,
+      githubData
+    } = await GitHub.fetchRepository({owner, name});
 
     if (!Session.user!.isAdmin) {
       const userId = Session.user!.githubId;
@@ -137,6 +147,19 @@ export class Implementation extends WithOwner(Entity) {
           });
         }
       }
+    }
+
+    if (isArchived) {
+      throw Object.assign(new Error(`Repository archived`), {
+        displayMessage: 'The specified repository is archived.'
+      });
+    }
+
+    if (!hasIssues) {
+      throw Object.assign(new Error(`Repository issues disabled`), {
+        displayMessage:
+          'Sorry, you cannot submit an implementation with a repository that has the "Issues" feature disabled.'
+      });
     }
 
     this.numberOfStars = numberOfStars;
@@ -310,8 +333,6 @@ export class Implementation extends WithOwner(Entity) {
   }
 
   static async _refreshGitHubData({limit}: {limit?: number} = {}) {
-    const {GitHub} = this;
-
     const implementations = await this.find(
       {},
       {repositoryURL: true},
@@ -319,31 +340,48 @@ export class Implementation extends WithOwner(Entity) {
     );
 
     for (const implementation of implementations) {
-      const {owner, name} = parseRepositoryURL(implementation.repositoryURL);
+      await implementation.refreshGitHubData();
+    }
+  }
 
-      try {
-        const {numberOfStars, githubData} = await GitHub.fetchRepository({owner, name});
+  async refreshGitHubData() {
+    const {GitHub} = this.constructor;
 
-        implementation.numberOfStars = numberOfStars;
-        implementation.githubData = githubData;
+    await this.load({repositoryURL: true});
 
-        console.log(
-          `The implementation '${implementation.repositoryURL}' has been successfully refreshed`
-        );
-      } catch (error) {
-        if (error.code === 'REPOSITORY_NOT_FOUND') {
-          implementation.status = 'missing-repository';
-        }
+    try {
+      const {owner, name} = parseRepositoryURL(this.repositoryURL);
 
-        console.error(
-          `An error occurred while refreshing the implementation '${implementation.repositoryURL}' (${error.message})`
-        );
+      const {numberOfStars, isArchived, hasIssues, githubData} = await GitHub.fetchRepository({
+        owner,
+        name
+      });
+
+      this.numberOfStars = numberOfStars;
+      this.githubData = githubData;
+
+      if (isArchived) {
+        this.repositoryStatus = 'archived';
+      } else if (!hasIssues) {
+        this.repositoryStatus = 'issues-disabled';
+      } else {
+        this.repositoryStatus = 'available';
       }
 
-      implementation.githubDataFetchedOn = new Date();
+      console.log(`The implementation '${this.repositoryURL}' has been successfully refreshed`);
+    } catch (error) {
+      if (error.code === 'REPOSITORY_NOT_FOUND') {
+        this.repositoryStatus = 'missing';
+      }
 
-      await implementation.save();
+      console.error(
+        `An error occurred while refreshing the implementation '${this.repositoryURL}' (${error.message})`
+      );
     }
+
+    this.githubDataFetchedOn = new Date();
+
+    await this.save();
   }
 }
 

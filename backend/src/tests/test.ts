@@ -5,7 +5,7 @@ async function main() {
   const store = createStore(Application);
 
   try {
-    await refreshAllGitHubData();
+    await refreshGitHubData();
   } finally {
     await store.disconnect();
   }
@@ -20,6 +20,14 @@ export async function countPendingIssues() {
   });
 
   console.log(`Pending issues: ${count}`);
+}
+
+export async function refreshGitHubData() {
+  const {Implementation} = Application;
+
+  const implementation = await Implementation.get('ckie80ctf00013f5vv9r6qosf', {});
+
+  await implementation.refreshGitHubData();
 }
 
 export async function refreshAllGitHubData() {

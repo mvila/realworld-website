@@ -61,11 +61,13 @@ export class GitHub extends Component {
     }
 
     const {
+      owner: {id: ownerId},
       stargazers_count: numberOfStars,
-      owner: {id: ownerId}
+      archived: isArchived,
+      has_issues: hasIssues
     } = githubData;
 
-    return {numberOfStars, ownerId, githubData};
+    return {ownerId, numberOfStars, isArchived, hasIssues, githubData};
   }
 
   static async countPendingIssues({owner, name}: {owner: string; name: string}) {

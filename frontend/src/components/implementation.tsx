@@ -1,10 +1,10 @@
 import {consume} from '@layr/component';
 import {Routable, route} from '@layr/routable';
-import {useMemo, useCallback} from 'react';
+import {Fragment, useMemo, useCallback} from 'react';
 import {view, useAsyncCallback, useAsyncMemo} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Input, Select, Button} from '@emotion-starter/react';
-import {Box, ComboBox, LaunchIcon} from '@emotion-kit/react';
+import {Box, Badge, ComboBox, LaunchIcon} from '@emotion-kit/react';
 import compact from 'lodash/compact';
 import {formatDistanceToNowStrict} from 'date-fns';
 import numeral from 'numeral';
@@ -30,11 +30,17 @@ export const frontendEnvironments = {
 };
 
 export const implementationStatus = {
-  'pending': {label: 'Pending'},
-  'reviewing': {label: 'Reviewing'},
-  'approved': {label: 'Approved'},
-  'rejected': {label: 'Rejected'},
-  'missing-repository': {label: 'Missing repository'}
+  pending: {label: 'Pending'},
+  reviewing: {label: 'Reviewing'},
+  approved: {label: 'Approved'},
+  rejected: {label: 'Rejected'}
+};
+
+export const repositoryStatus = {
+  'available': {label: 'Available'},
+  'archived': {label: 'Archived'},
+  'issues-disabled': {label: 'Issues disabled'},
+  'missing': {label: 'Missing'}
 };
 
 const popularLanguages = [
@@ -290,8 +296,9 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
             {},
             {
               repositoryURL: true,
-              createdAt: true,
-              status: true
+              repositoryStatus: true,
+              status: true,
+              createdAt: true
             },
             {sort: {createdAt: 'desc'}}
           );
@@ -310,7 +317,12 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                 columns={[
                   {
                     header: 'Repository',
-                    body: (implementation) => implementation.formatRepositoryURL()
+                    body: (implementation) => (
+                      <>
+                        {implementation.formatRepositoryURL()}
+                        {implementation.renderRepositoryStatusBadge()}
+                      </>
+                    )
                   },
                   {
                     width: 125,
@@ -757,6 +769,18 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
     formatStatus() {
       return implementationStatus[this.status].label;
+    }
+
+    renderRepositoryStatusBadge() {
+      if (this.repositoryStatus === 'available') {
+        return null;
+      }
+
+      return (
+        <Badge color="secondary" variant="outline" css={{marginLeft: '.75rem'}}>
+          {repositoryStatus[this.repositoryStatus].label}
+        </Badge>
+      );
     }
   }
 
