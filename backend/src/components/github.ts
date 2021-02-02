@@ -9,6 +9,8 @@ const githubClientId = env.get('GITHUB_CLIENT_ID').required().asString();
 const githubClientSecret = env.get('GITHUB_CLIENT_SECRET').required().asString();
 const githubPersonalAccessToken = env.get('GITHUB_PERSONAL_ACCESS_TOKEN').required().asString();
 
+const PENDING_ISSUE_MINIMUM_AGE = 10 * 24 * 60 * 60 * 1000; // 10 days
+
 export class GitHub extends Component {
   static async fetchUser({accessToken}: {accessToken: string}) {
     const [userData, emailsData] = await Promise.all([
@@ -43,14 +45,15 @@ export class GitHub extends Component {
   }
 
   static async fetchRepository({owner, name}: {owner: string; name: string}) {
-    let githubData;
+    let githubData: any;
 
     try {
       githubData = await this.fetch(`repos/${owner}/${name}`);
     } catch (error) {
       if (error.status === 404) {
         throw Object.assign(new Error('Repository not found'), {
-          displayMessage: `The specified repository doesn't exist.`
+          displayMessage: `The specified repository doesn't exist.`,
+          code: 'REPOSITORY_NOT_FOUND'
         });
       }
 
@@ -63,6 +66,34 @@ export class GitHub extends Component {
     } = githubData;
 
     return {numberOfStars, ownerId, githubData};
+  }
+
+  static async countPendingIssues({owner, name}: {owner: string; name: string}) {
+    let issues: any[] = [];
+
+    let page = 1;
+
+    while (page <= 3) {
+      const pageIssues = await this.fetch(
+        `repos/${owner}/${name}/issues?state=open&per_page=100&page=${String(page)}`
+      );
+
+      issues.push(...pageIssues);
+
+      if (pageIssues.length !== 100) {
+        break;
+      }
+
+      page++;
+    }
+
+    issues = issues.filter(
+      (issue) =>
+        issue.user.type === 'User' &&
+        Date.now() - new Date(issue.created_at).valueOf() >= PENDING_ISSUE_MINIMUM_AGE
+    );
+
+    return issues.length;
   }
 
   static async findRepositoryContributor({

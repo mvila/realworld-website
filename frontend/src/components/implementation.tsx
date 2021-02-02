@@ -30,10 +30,11 @@ export const frontendEnvironments = {
 };
 
 export const implementationStatus = {
-  pending: {label: 'Pending'},
-  reviewing: {label: 'Reviewing'},
-  approved: {label: 'Approved'},
-  rejected: {label: 'Rejected'}
+  'pending': {label: 'Pending'},
+  'reviewing': {label: 'Reviewing'},
+  'approved': {label: 'Approved'},
+  'rejected': {label: 'Rejected'},
+  'missing-repository': {label: 'Missing repository'}
 };
 
 const popularLanguages = [

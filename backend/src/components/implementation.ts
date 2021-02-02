@@ -8,13 +8,27 @@ import {WithOwner} from './with-owner';
 import type {GitHub} from './github';
 import type {Mailer} from './mailer';
 
-const {maxLength, rangeLength, match, anyOf, integer, positive} = validators;
+const {optional, maxLength, rangeLength, match, anyOf, integer, positive} = validators;
 
 const frontendURL = env.get('FRONTEND_URL').required().asUrlString();
 
-export type ImplementationCategory = 'frontend' | 'backend' | 'fullstack';
-export type FrontendEnvironment = 'web' | 'mobile' | 'desktop';
-export type ImplementationStatus = 'pending' | 'reviewing' | 'approved' | 'rejected';
+const IMPLEMENTATION_CATEGORIES = ['frontend', 'backend', 'fullstack'] as const;
+
+export type ImplementationCategory = typeof IMPLEMENTATION_CATEGORIES[number];
+
+const FRONTEND_ENVIRONMENTS = ['web', 'mobile', 'desktop'] as const;
+
+export type FrontendEnvironment = typeof FRONTEND_ENVIRONMENTS[number];
+
+const IMPLEMENTATION_STATUSES = [
+  'pending',
+  'reviewing',
+  'approved',
+  'rejected',
+  'missing-repository'
+] as const;
+
+export type ImplementationStatus = typeof IMPLEMENTATION_STATUSES[number];
 
 const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -44,14 +58,14 @@ export class Implementation extends WithOwner(Entity) {
   @expose({get: true, set: ['owner', 'admin']})
   @index()
   @attribute('string', {
-    validators: [anyOf(['frontend', 'backend', 'fullstack'])]
+    validators: [anyOf(IMPLEMENTATION_CATEGORIES)]
   })
   category!: ImplementationCategory;
 
   @expose({get: true, set: ['owner', 'admin']})
   @index()
   @attribute('string?', {
-    validators: [anyOf([undefined, 'web', 'mobile', 'desktop'])]
+    validators: [optional(anyOf(FRONTEND_ENVIRONMENTS))]
   })
   frontendEnvironment?: FrontendEnvironment;
 
@@ -70,7 +84,7 @@ export class Implementation extends WithOwner(Entity) {
   @expose({get: ['owner', 'admin']})
   @index()
   @attribute('string', {
-    validators: [anyOf(['pending', 'reviewing', 'approved', 'rejected'])]
+    validators: [anyOf(IMPLEMENTATION_STATUSES)]
   })
   status: ImplementationStatus = 'pending';
 
@@ -84,6 +98,11 @@ export class Implementation extends WithOwner(Entity) {
   @index()
   @attribute('number', {validators: [integer(), positive()]})
   numberOfStars = 0;
+
+  @expose({get: true})
+  @index()
+  @attribute('number?', {validators: [optional([integer(), positive()])]})
+  numberOfPendingIssues?: number;
 
   @attribute() githubData!: any;
 
@@ -123,6 +142,8 @@ export class Implementation extends WithOwner(Entity) {
     this.numberOfStars = numberOfStars;
     this.githubData = githubData;
     this.githubDataFetchedOn = new Date();
+
+    this.numberOfPendingIssues = await GitHub.countPendingIssues({owner, name});
 
     await this.save();
 
@@ -278,16 +299,20 @@ export class Implementation extends WithOwner(Entity) {
   }
 
   @expose({call: true}) @method() static async refreshGitHubData() {
-    // This method is executed 24 times a day, so each implementation should be
+    // This method is executed 24 times a day, and each implementation should be
     // refreshed once a day
 
     // Trigger the execution in development mode with:
     // time curl -v -X POST -H "Content-Type: application/json" -d '{"query": {"<=": {"__component": "typeof Implementation"}, "refreshGitHubData=>": {"()": []}}}' http://localhost:15542
 
-    const {GitHub} = this;
-
     const numberOfImplementations = await this.count();
     const limit = Math.ceil(numberOfImplementations / 24);
+
+    await this._refreshGitHubData({limit});
+  }
+
+  static async _refreshGitHubData({limit}: {limit?: number} = {}) {
+    const {GitHub} = this;
 
     const implementations = await this.find(
       {},
@@ -296,9 +321,9 @@ export class Implementation extends WithOwner(Entity) {
     );
 
     for (const implementation of implementations) {
-      try {
-        const {owner, name} = parseRepositoryURL(implementation.repositoryURL);
+      const {owner, name} = parseRepositoryURL(implementation.repositoryURL);
 
+      try {
         const {numberOfStars, githubData} = await GitHub.fetchRepository({owner, name});
 
         implementation.numberOfStars = numberOfStars;
@@ -308,12 +333,24 @@ export class Implementation extends WithOwner(Entity) {
           `The implementation '${implementation.repositoryURL}' has been successfully refreshed`
         );
       } catch (error) {
+        if (error.code === 'REPOSITORY_NOT_FOUND') {
+          implementation.status = 'missing-repository';
+        }
+
         console.error(
           `An error occurred while refreshing the implementation '${implementation.repositoryURL}' (${error.message})`
         );
       }
 
       implementation.githubDataFetchedOn = new Date();
+
+      try {
+        implementation.numberOfPendingIssues = await GitHub.countPendingIssues({owner, name});
+      } catch (error) {
+        console.error(
+          `An error occurred while counting the pending issues of the implementation '${implementation.repositoryURL}' (${error.message})`
+        );
+      }
 
       await implementation.save();
     }
