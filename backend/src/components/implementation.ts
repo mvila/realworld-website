@@ -143,8 +143,6 @@ export class Implementation extends WithOwner(Entity) {
     this.githubData = githubData;
     this.githubDataFetchedOn = new Date();
 
-    this.numberOfPendingIssues = await GitHub.countPendingIssues({owner, name});
-
     await this.save();
 
     try {
@@ -343,14 +341,6 @@ export class Implementation extends WithOwner(Entity) {
       }
 
       implementation.githubDataFetchedOn = new Date();
-
-      try {
-        implementation.numberOfPendingIssues = await GitHub.countPendingIssues({owner, name});
-      } catch (error) {
-        console.error(
-          `An error occurred while counting the pending issues of the implementation '${implementation.repositoryURL}' (${error.message})`
-        );
-      }
 
       await implementation.save();
     }
