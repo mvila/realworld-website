@@ -27,4 +27,15 @@ export class Application extends Component {
     const limit = Math.ceil(numberOfImplementations / 24);
     await Implementation.refreshGitHubData({limit});
   }
+
+  @expose({call: true}) @method() static async runDailyTask() {
+    // This method is executed once a day
+
+    // Trigger the execution in development mode with:
+    // time curl -v -X POST -H "Content-Type: application/json" -d '{"query": {"<=": {"__component": "typeof Application"}, "runDailyTask=>": {"()": []}}}' http://localhost:15542
+
+    const {Implementation} = this;
+
+    await Implementation.checkMaintenanceStatus();
+  }
 }

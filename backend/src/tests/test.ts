@@ -5,10 +5,16 @@ async function main() {
   const store = createStore(Application);
 
   try {
-    await refreshGitHubData();
+    await refreshAllGitHubData();
   } finally {
     await store.disconnect();
   }
+}
+
+export async function checkAllImplementationMaintenanceStatus() {
+  const {Implementation} = Application;
+
+  await Implementation.checkMaintenanceStatus();
 }
 
 export async function countPendingIssues() {

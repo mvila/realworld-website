@@ -116,6 +116,15 @@ Add an AWS EventBridge rule to automatically run an hourly task:
   - Lambda function: `backend-realworld-mvila-me`
   - Constant input: `{"query": {"<=": {"__component": "typeof Application"}, "runHourlyTask=>": {"()": []}}}`
 
+Add another AWS EventBridge rule to automatically run a daily task:
+
+- Name: `realworld-website-daily-task`
+- Schedule:
+  - Fixed rate every: `1 day`
+- Target:
+  - Lambda function: `backend-realworld-mvila-me`
+  - Constant input: `{"query": {"<=": {"__component": "typeof Application"}, "runDailyTask=>": {"()": []}}}`
+
 ## License
 
 MIT

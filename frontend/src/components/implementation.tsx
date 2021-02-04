@@ -1,10 +1,10 @@
 import {consume} from '@layr/component';
 import {Routable, route} from '@layr/routable';
-import {Fragment, useMemo, useCallback} from 'react';
-import {view, useAsyncCallback, useAsyncMemo} from '@layr/react-integration';
+import {Fragment, useState, useMemo, useCallback} from 'react';
+import {view, useAsyncCallback, useAsyncMemo, useAsyncCall} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Input, Select, Button} from '@emotion-starter/react';
-import {Box, Badge, ComboBox, LaunchIcon} from '@emotion-kit/react';
+import {Stack, Box, Badge, ComboBox, DropdownMenu, FlagIcon, LaunchIcon} from '@emotion-kit/react';
 import compact from 'lodash/compact';
 import {formatDistanceToNowStrict} from 'date-fns';
 import numeral from 'numeral';
@@ -16,6 +16,7 @@ import type {
 } from '../../../backend/src/components/implementation';
 import type {Home} from './home';
 import type {Common} from './common';
+import {useStyles} from '../styles';
 
 export const implementationCategories = {
   frontend: {label: 'Frontend'},
@@ -159,7 +160,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
       return Common.ensureUser(() => {
         return (
-          <Common.Dialog title={'Thank you!'}>
+          <Common.Dialog title={'Thank You!'}>
             <p>Your submission has been recorded. We will review it shortly.</p>
             <Common.ButtonBar>
               <Button
@@ -167,7 +168,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                   Home.Main.navigate();
                 }}
                 color="primary"
-                css={{marginTop: '1rem'}}
               >
                 Okay
               </Button>
@@ -320,7 +320,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     body: (implementation) => (
                       <>
                         {implementation.formatRepositoryURL()}
-                        {implementation.renderRepositoryStatusBadge()}
+                        <implementation.RepositoryStatusBadge />
                       </>
                     )
                   },
@@ -483,7 +483,7 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
     }) {
       const {Common} = this.constructor;
 
-      const theme = useTheme();
+      const styles = useStyles();
 
       const cleanAttributes = useCallback(() => {
         this.repositoryURL = this.repositoryURL.trim();
@@ -544,13 +544,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
           ? 'Meteor'
           : '';
 
-      const controlStyle = {marginTop: '1rem', display: 'flex', flexDirection: 'column'} as const;
-      const labelStyle = {
-        marginBottom: '.5rem',
-        color: theme.colors.text.muted,
-        lineHeight: theme.lineHeights.small
-      };
-
       return (
         <Common.Dialog title={title}>
           <form
@@ -571,126 +564,130 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
           >
             {error && <Common.ErrorBox error={error} />}
 
-            <div css={controlStyle}>
-              <label htmlFor="repositoryURL" css={labelStyle}>
-                Repository URL
-              </label>
-              <div css={{display: 'flex', alignItems: 'center'}}>
-                <Input
-                  id="repositoryURL"
-                  value={this.repositoryURL}
-                  onChange={(event) => {
-                    this.repositoryURL = event.target.value;
-                  }}
-                  placeholder="https://github.com/owner/repository"
-                  readOnly={!this.isNew()}
-                  required
-                  autoFocus={this.isNew()}
-                  css={{width: '100%'}}
-                />
-                <OpenURLButton url={this.repositoryURL} css={{marginLeft: '.5rem'}} />
-              </div>
-            </div>
-
-            <div css={{display: 'flex', flexWrap: 'wrap'}}>
-              <div css={{...controlStyle, marginRight: '1rem'}}>
-                <label htmlFor="category" css={labelStyle}>
-                  Category
+            <Stack direction="column">
+              <div css={styles.control}>
+                <label htmlFor="repositoryURL" css={styles.label}>
+                  Repository URL
                 </label>
-                <Select
-                  id="category"
-                  value={category}
-                  onChange={(event) => {
-                    if (event.target.value !== '') {
-                      this.category = event.target.value as ImplementationCategory;
-                    } else {
-                      this.getAttribute('category').unsetValue();
-                    }
-
-                    this.frontendEnvironment = undefined;
-                  }}
-                  required
-                  css={{width: 150}}
-                >
-                  {this.isNew() && <option value="" />}
-                  {Object.entries(implementationCategories).map(([value, {label}]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
+                <div css={{display: 'flex', alignItems: 'center'}}>
+                  <Input
+                    id="repositoryURL"
+                    value={this.repositoryURL}
+                    onChange={(event) => {
+                      this.repositoryURL = event.target.value;
+                    }}
+                    placeholder="https://github.com/owner/repository"
+                    readOnly={!this.isNew()}
+                    required
+                    autoFocus={this.isNew()}
+                    css={{width: '100%'}}
+                  />
+                  <OpenURLButton url={this.repositoryURL} css={{marginLeft: '.5rem'}} />
+                </div>
               </div>
 
-              {(category === 'frontend' || category === 'fullstack') && (
-                <div css={{...controlStyle, marginRight: '1rem'}}>
-                  <label htmlFor="frontendEnvironment" css={labelStyle}>
-                    Environment
+              <Stack>
+                <div css={styles.control}>
+                  <label htmlFor="category" css={styles.label}>
+                    Category
                   </label>
                   <Select
-                    id="frontendEnvironment"
-                    value={this.frontendEnvironment !== undefined ? this.frontendEnvironment : ''}
+                    id="category"
+                    value={category}
                     onChange={(event) => {
-                      this.frontendEnvironment =
-                        event.target.value !== ''
-                          ? (event.target.value as FrontendEnvironment)
-                          : undefined;
+                      if (event.target.value !== '') {
+                        this.category = event.target.value as ImplementationCategory;
+                      } else {
+                        this.getAttribute('category').unsetValue();
+                      }
+
+                      this.frontendEnvironment = undefined;
                     }}
                     required
                     css={{width: 150}}
                   >
-                    <option value="" />
-                    {Object.entries(frontendEnvironments).map(([value, {label}]) => (
+                    {this.isNew() && <option value="" />}
+                    {Object.entries(implementationCategories).map(([value, {label}]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
                     ))}
                   </Select>
                 </div>
-              )}
 
-              <div css={{...controlStyle}}>
-                <label htmlFor="language" css={labelStyle}>
-                  Language
-                </label>
-                <ComboBox
-                  id="language"
-                  items={popularLanguages}
-                  initialValue={this.language}
-                  onValueChange={(value) => {
-                    this.language = value;
-                  }}
-                  required
-                  placeholder="JavaScript"
-                  css={{width: 200}}
-                />
+                {(category === 'frontend' || category === 'fullstack') && (
+                  <div css={styles.control}>
+                    <label htmlFor="frontendEnvironment" css={styles.label}>
+                      Environment
+                    </label>
+                    <Select
+                      id="frontendEnvironment"
+                      value={this.frontendEnvironment !== undefined ? this.frontendEnvironment : ''}
+                      onChange={(event) => {
+                        this.frontendEnvironment =
+                          event.target.value !== ''
+                            ? (event.target.value as FrontendEnvironment)
+                            : undefined;
+                      }}
+                      required
+                      css={{width: 150}}
+                    >
+                      <option value="" />
+                      {Object.entries(frontendEnvironments).map(([value, {label}]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+
+                <div css={styles.control}>
+                  <label htmlFor="language" css={styles.label}>
+                    Language
+                  </label>
+                  <ComboBox
+                    id="language"
+                    items={popularLanguages}
+                    initialValue={this.language}
+                    onValueChange={(value) => {
+                      this.language = value;
+                    }}
+                    required
+                    placeholder="JavaScript"
+                    css={{width: 200}}
+                  />
+                </div>
+              </Stack>
+
+              <div css={styles.control}>
+                <label css={styles.label}>Libraries/Frameworks</label>
+                <Stack direction="column" spacing=".5rem">
+                  {this.libraries.map((_, index) => (
+                    <ComboBox
+                      key={index}
+                      items={popularLibraries}
+                      initialValue={this.libraries[index]}
+                      onValueChange={(value) => {
+                        this.libraries[index] = value;
+                      }}
+                      placeholder={index === 0 ? libraryPlaceholder : 'One more?'}
+                      css={{width: 200}}
+                    />
+                  ))}
+                </Stack>
               </div>
-            </div>
-
-            <div css={{...controlStyle, marginBottom: '-.5rem'}}>
-              <label css={labelStyle}>Libraries/Frameworks</label>
-              {this.libraries.map((_, index) => (
-                <ComboBox
-                  key={index}
-                  items={popularLibraries}
-                  initialValue={this.libraries[index]}
-                  onValueChange={(value) => {
-                    this.libraries[index] = value;
-                  }}
-                  placeholder={index === 0 ? libraryPlaceholder : 'One more?'}
-                  css={{width: 200, marginBottom: '.5rem'}}
-                />
-              ))}
-            </div>
+            </Stack>
 
             <Common.ButtonBar>
               {onSubmit && (
-                <Button type="submit" color="primary" css={{margin: '1rem 1rem 0 0'}}>
+                <Button type="submit" color="primary">
                   Submit
                 </Button>
               )}
 
               {onSave && (
-                <Button type="submit" color="primary" css={{margin: '1rem 1rem 0 0'}}>
+                <Button type="submit" color="primary">
                   Save
                 </Button>
               )}
@@ -701,7 +698,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     event.preventDefault();
                     handleDelete();
                   }}
-                  css={{margin: '1rem 1rem 0 0'}}
                 >
                   Delete
                 </Button>
@@ -714,7 +710,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     handleApprove();
                   }}
                   color="positive"
-                  css={{margin: '1rem 1rem 0 0'}}
                 >
                   Approve
                 </Button>
@@ -727,7 +722,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                     handleReject();
                   }}
                   color="negative"
-                  css={{margin: '1rem 1rem 0 0'}}
                 >
                   Reject
                 </Button>
@@ -739,7 +733,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
                   handleCancel();
                 }}
                 variant="outline"
-                css={{marginTop: '1rem'}}
               >
                 Cancel
               </Button>
@@ -747,6 +740,269 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
           </form>
         </Common.Dialog>
       );
+    }
+
+    @view() RepositoryStatusBadge() {
+      if (this.repositoryStatus === 'available') {
+        return null;
+      }
+
+      return (
+        <Badge color="secondary" variant="outline" css={{marginLeft: '.75rem'}}>
+          {repositoryStatus[this.repositoryStatus].label}
+        </Badge>
+      );
+    }
+
+    @view() FlagMenu({className}: {className?: string}) {
+      const theme = useTheme();
+
+      return (
+        <DropdownMenu
+          items={[
+            {
+              label: 'Report as unmaintained',
+              onClick: (event) => {
+                event.preventDefault();
+                this.constructor.ReportAsUnmaintained.navigate({
+                  id: this.id,
+                  callbackURL: this.getRouter().getCurrentURL()
+                });
+              }
+            }
+          ]}
+        >
+          {({open}) => (
+            <div
+              onClick={(event) => {
+                event.preventDefault();
+                open(event);
+              }}
+              className={className}
+            >
+              <FlagIcon
+                size={20}
+                css={{
+                  'color': theme.colors.text.moreMuted,
+                  ':hover': {color: theme.colors.text.normal}
+                }}
+              />
+            </div>
+          )}
+        </DropdownMenu>
+      );
+    }
+
+    @route('/implementations/:id/report-as-unmaintained\\?:callbackURL')
+    @view()
+    static ReportAsUnmaintained({
+      id,
+      callbackURL = this.Home.Main.generateURL()
+    }: {
+      id: string;
+      callbackURL?: string;
+    }) {
+      const {Common} = this;
+
+      return Common.ensureUser(() => {
+        const theme = useTheme();
+        const styles = useStyles();
+
+        const [implementation, , loadingError] = useAsyncMemo(async () => {
+          const implementation = await this.get(id, {
+            repositoryURL: true,
+            libraries: true,
+            unmaintainedIssueNumber: true,
+            markedAsUnmaintainedOn: true
+          });
+
+          if (implementation.unmaintainedIssueNumber !== undefined) {
+            throw Object.assign(new Error('Implementation already reported as unmaintained'), {
+              displayMessage: 'This implementation has already been reported as unmaintained.'
+            });
+          }
+
+          if (implementation.markedAsUnmaintainedOn !== undefined) {
+            throw Object.assign(new Error('Implementation already marked as unmaintained'), {
+              displayMessage: 'This implementation has already been marked as unmaintained.'
+            });
+          }
+
+          return implementation;
+        }, [id]);
+
+        const [issueNumber, setIssueNumber] = useState('');
+
+        const [handleSubmit, isSubmitting, submitError] = useAsyncCallback(async () => {
+          await implementation!.reportAsUnmaintained(Number(issueNumber));
+          this.ReportAsUnmaintainedCompleted.navigate({id: implementation!.id, callbackURL});
+        }, [implementation, issueNumber]);
+
+        if (loadingError !== undefined) {
+          return (
+            <Common.ErrorLayout>
+              <Common.ErrorMessage error={loadingError} />
+            </Common.ErrorLayout>
+          );
+        }
+
+        if (implementation === undefined || isSubmitting) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <Common.Dialog title="Report an Implementation as Unmaintained">
+            <a href={implementation.repositoryURL} target="_blank" css={styles.hiddenLink}>
+              <Box css={{padding: '.75rem 1rem', lineHeight: theme.lineHeights.small}}>
+                <div
+                  css={{
+                    fontSize: theme.fontSizes.large,
+                    fontWeight: theme.fontWeights.semibold
+                  }}
+                >
+                  {implementation.formatLibraries()}
+                </div>
+
+                <div
+                  css={{
+                    marginTop: '.3rem',
+                    color: theme.colors.text.muted
+                  }}
+                >
+                  {implementation.formatRepositoryURL()}
+                </div>
+              </Box>
+            </a>
+
+            <p css={{marginTop: '1.5rem'}}>
+              If you think that this implementation is no longer maintained, please post a new issue
+              (or reference an existing issue) in the{' '}
+              <a href={implementation.repositoryURL} target="_blank">
+                implementation repository
+              </a>{' '}
+              with a title such as <strong>"Is this repository still maintained?"</strong> and enter
+              the issue number below.
+            </p>
+
+            <p>
+              If the issue remains <strong>open for a period of 30 days</strong>, the implementation
+              will be automatically marked as unmaintained and it will be removed from the
+              implementation list.
+            </p>
+
+            {submitError && <Common.ErrorBox error={submitError} css={{marginBottom: '1rem'}} />}
+
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleSubmit();
+              }}
+              autoComplete="off"
+            >
+              <div css={styles.control}>
+                <label htmlFor="issueNumber" css={styles.label}>
+                  Issue number
+                </label>
+                <Input
+                  id="issueNumber"
+                  value={issueNumber}
+                  onChange={(event) => {
+                    setIssueNumber(event.target.value);
+                  }}
+                  placeholder="123"
+                  required
+                  pattern="[0-9]+"
+                  autoFocus
+                  css={{width: 150}}
+                />
+              </div>
+
+              <Common.ButtonBar>
+                <Button type="submit" color="primary">
+                  Report
+                </Button>
+                <Button
+                  onClick={(event) => {
+                    event.preventDefault();
+                    this.getRouter().navigate(callbackURL);
+                  }}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+              </Common.ButtonBar>
+            </form>
+          </Common.Dialog>
+        );
+      });
+    }
+
+    @route('/implementations/:id/report-as-unmaintained/completed\\?:callbackURL')
+    @view()
+    static ReportAsUnmaintainedCompleted({
+      callbackURL = this.Home.Main.generateURL()
+    }: {
+      callbackURL?: string;
+    }) {
+      const {Common} = this;
+
+      return Common.ensureUser(() => {
+        return (
+          <Common.Dialog title={'Thank You!'}>
+            <p>Your report has been recorded.</p>
+            <Common.ButtonBar>
+              <Button
+                onClick={() => {
+                  this.getRouter().navigate(callbackURL);
+                }}
+                color="primary"
+              >
+                Okay
+              </Button>
+            </Common.ButtonBar>
+          </Common.Dialog>
+        );
+      });
+    }
+
+    @route('/implementations/:id/approve-unmaintained-report\\?:token')
+    @view()
+    static ApproveUnmaintainedReport({token}: {token: string}) {
+      const {Home, Common} = this;
+
+      return Common.ensureAdmin(() => {
+        const [isApproving, approvingError] = useAsyncCall(async () => {
+          await this.approveUnmaintainedReport(token);
+        }, [token]);
+
+        if (approvingError !== undefined) {
+          return (
+            <Common.ErrorLayout>
+              <Common.ErrorMessage error={approvingError} />
+            </Common.ErrorLayout>
+          );
+        }
+
+        if (isApproving) {
+          return <Common.LoadingSpinner />;
+        }
+
+        return (
+          <Common.Dialog title={'Unmaintained Implementation Report'} maxWidth={650}>
+            <p>The report has been approved.</p>
+            <Common.ButtonBar>
+              <Button
+                onClick={() => {
+                  Home.Main.navigate();
+                }}
+                color="primary"
+              >
+                Okay
+              </Button>
+            </Common.ButtonBar>
+          </Common.Dialog>
+        );
+      });
     }
 
     formatRepositoryURL() {
@@ -769,18 +1025,6 @@ export const getImplementation = (Base: typeof BackendImplementation) => {
 
     formatStatus() {
       return implementationStatus[this.status].label;
-    }
-
-    renderRepositoryStatusBadge() {
-      if (this.repositoryStatus === 'available') {
-        return null;
-      }
-
-      return (
-        <Badge color="secondary" variant="outline" css={{marginLeft: '.75rem'}}>
-          {repositoryStatus[this.repositoryStatus].label}
-        </Badge>
-      );
     }
   }
 

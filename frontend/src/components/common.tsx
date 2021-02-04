@@ -4,7 +4,7 @@ import {useMemo} from 'react';
 import {view, useDelay} from '@layr/react-integration';
 import {jsx, useTheme} from '@emotion/react';
 import {Button} from '@emotion-starter/react';
-import {Box, ErrorIcon} from '@emotion-kit/react';
+import {Stack, Box, ErrorIcon} from '@emotion-kit/react';
 import {useWindowHeight} from '@react-hook/window-size';
 
 import type {Home} from './home';
@@ -99,13 +99,36 @@ export class Common extends Routable(Component) {
     );
   }
 
-  @view() static ButtonBar({className, children}: {className?: string; children: React.ReactNode}) {
+  // @view() static ButtonBar({className, children}: {className?: string; children: React.ReactNode}) {
+  //   return (
+  //     <div
+  //       className={className}
+  //       css={{marginTop: '1rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center'}}
+  //     >
+  //       {children}
+  //     </div>
+  //   );
+  // }
+
+  @view() static ButtonBar({
+    alignment = 'left',
+    className,
+    children
+  }: {
+    alignment?: 'left' | 'center' | 'right';
+    className?: string;
+    children: React.ReactNode;
+  }) {
+    const justifyContent =
+      alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : undefined;
+
+    if (children === null || children === false) {
+      return null;
+    }
+
     return (
-      <div
-        className={className}
-        css={{marginTop: '1rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center'}}
-      >
-        {children}
+      <div className={className} css={{marginTop: '2rem'}}>
+        <Stack css={{justifyContent, alignItems: 'center'}}>{children}</Stack>
       </div>
     );
   }

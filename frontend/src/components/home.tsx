@@ -1,10 +1,11 @@
 import {Component, consume} from '@layr/component';
 import {Routable, route} from '@layr/routable';
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import {jsx, useTheme, Theme} from '@emotion/react';
 import {view, useAsyncMemo} from '@layr/react-integration';
-import {Box, Badge, StarIcon} from '@emotion-kit/react';
+import {Stack, Box, Badge, StarIcon} from '@emotion-kit/react';
 import sortBy from 'lodash/sortBy';
+import partition from 'lodash/partition';
 
 import {User} from './user';
 import {Implementation, implementationCategories} from './implementation';
@@ -12,6 +13,7 @@ import type {Common} from './common';
 import type {ImplementationCategory} from '../../../backend/src/components/implementation';
 // @ts-ignore
 import conduitScreenshot from '../assets/conduit-screenshot-20201213.immutable.png';
+import {useStyles} from '../styles';
 
 const filterHeaderStyle = (theme: Theme) =>
   ({
@@ -21,11 +23,6 @@ const filterHeaderStyle = (theme: Theme) =>
     textTransform: 'uppercase',
     letterSpacing: '1px'
   } as const);
-
-const hiddenLinkStyle = {
-  'color': 'inherit',
-  ':hover': {color: 'inherit', textDecoration: 'none'}
-};
 
 export class Home extends Routable(Component) {
   @consume() static User: typeof User;
@@ -89,20 +86,37 @@ export class Home extends Routable(Component) {
     const {Implementation, Common} = this;
 
     const theme = useTheme();
+    const styles = useStyles();
 
     const [implementations, , loadingError] = useAsyncMemo(async () => {
-      return await Implementation.find(
+      const all = await Implementation.find(
         {category: currentCategory, status: 'approved', repositoryStatus: 'available'},
         {
           repositoryURL: true,
           frontendEnvironment: true,
           language: true,
           libraries: true,
-          numberOfStars: true
+          numberOfStars: true,
+          markedAsUnmaintainedOn: true
         },
         {sort: {numberOfStars: 'desc'}}
       );
+
+      const [active, unmaintained] = partition(
+        all,
+        (implementation) => implementation.markedAsUnmaintainedOn === undefined
+      );
+
+      return {all, active, unmaintained};
     }, [currentCategory]);
+
+    const filterImplementationsByLanguage = useCallback(
+      (implementations: Implementation[]) =>
+        implementations.filter(({language}) =>
+          currentLanguage !== 'all' ? language.toLowerCase() === currentLanguage : true
+        ),
+      [currentLanguage]
+    );
 
     if (loadingError) {
       return (
@@ -122,98 +136,159 @@ export class Home extends Routable(Component) {
           </div>
         )}
 
-        {implementations !== undefined && implementations.length > 0 && (
+        {implementations !== undefined && implementations.all.length > 0 && (
           <div css={{marginTop: '2rem', display: 'flex'}}>
             <div css={theme.responsive({marginRight: '3rem', display: ['block', , 'none']})}>
               <this.LanguageFilter
-                implementations={implementations}
+                implementations={implementations.all}
                 currentLanguage={currentLanguage}
               />
             </div>
 
             <div css={{flex: 1}}>
-              {implementations
-                .filter(({language}) =>
-                  currentLanguage !== 'all' ? language.toLowerCase() === currentLanguage : true
-                )
-                .map((implementation, index) => (
-                  <Fragment key={implementation.id}>
-                    {index > 0 && <hr css={{marginTop: '.75rem', marginBottom: '.75rem'}} />}
+              <Stack direction="column" spacing="2rem">
+                {(() => {
+                  const filteredImplementations = filterImplementationsByLanguage(
+                    implementations.active
+                  );
 
-                    <a href={implementation.repositoryURL} target="_blank" css={hiddenLinkStyle}>
-                      <div
-                        css={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <div
-                          css={theme.responsive({
-                            flex: ['1', , , '1 0 100%'],
-                            marginBottom: [, , , '.5rem'],
-                            paddingRight: '1rem',
-                            lineHeight: theme.lineHeights.small
-                          })}
-                        >
-                          <div css={{display: 'flex', alignItems: 'center'}}>
+                  if (filteredImplementations.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <div>
+                      {filteredImplementations.map((implementation, index) => (
+                        <Fragment key={implementation.id}>
+                          {index > 0 && <hr css={{marginTop: '.75rem', marginBottom: '.75rem'}} />}
+
+                          <a
+                            href={implementation.repositoryURL}
+                            target="_blank"
+                            css={styles.hiddenLink}
+                          >
                             <div
                               css={{
-                                fontSize: theme.fontSizes.large,
-                                fontWeight: theme.fontWeights.semibold
+                                'display': 'flex',
+                                'flexWrap': 'wrap',
+                                'alignItems': 'center',
+                                ':hover': {
+                                  '.implementation-flag-menu': {
+                                    opacity: 1
+                                  }
+                                }
                               }}
                             >
-                              {implementation.formatLibraries()}
-                            </div>
-                            {implementation.frontendEnvironment !== undefined &&
-                              implementation.frontendEnvironment !== 'web' && (
-                                <Badge
-                                  color="primary"
-                                  variant="outline"
-                                  css={{marginLeft: '.75rem'}}
+                              <div
+                                css={theme.responsive({
+                                  flex: ['1', , , '1 0 100%'],
+                                  marginBottom: [, , , '.5rem'],
+                                  paddingRight: ['1rem', , , '0'],
+                                  lineHeight: theme.lineHeights.small
+                                })}
+                              >
+                                <div css={{display: 'flex', alignItems: 'center'}}>
+                                  <div
+                                    css={{
+                                      fontSize: theme.fontSizes.large,
+                                      fontWeight: theme.fontWeights.semibold
+                                    }}
+                                  >
+                                    {implementation.formatLibraries()}
+                                  </div>
+                                  {implementation.frontendEnvironment !== undefined &&
+                                    implementation.frontendEnvironment !== 'web' && (
+                                      <Badge
+                                        color="primary"
+                                        variant="outline"
+                                        css={{marginLeft: '.75rem'}}
+                                      >
+                                        {implementation.formatFrontendEnvironment()}
+                                      </Badge>
+                                    )}
+                                  <implementation.FlagMenu
+                                    className="implementation-flag-menu"
+                                    css={theme.responsive({
+                                      display: ['block', , , 'none'],
+                                      marginLeft: '.5rem',
+                                      opacity: 0
+                                    })}
+                                  />
+                                </div>
+                                <div
+                                  css={{
+                                    marginTop: '.3rem',
+                                    color: theme.colors.text.muted,
+                                    wordBreak: 'break-word'
+                                  }}
                                 >
-                                  {implementation.formatFrontendEnvironment()}
-                                </Badge>
-                              )}
-                          </div>
-                          <div
-                            css={{
-                              marginTop: '.3rem',
-                              color: theme.colors.text.muted,
-                              wordBreak: 'break-word'
-                            }}
+                                  {implementation.formatRepositoryURL()}
+                                </div>
+                              </div>
+
+                              <div css={{width: '150px', lineHeight: 1}}>
+                                {implementation.language}
+                              </div>
+
+                              <div
+                                css={{
+                                  width: '90px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  lineHeight: 1
+                                }}
+                              >
+                                <StarIcon
+                                  size={20}
+                                  color={theme.colors.text.muted}
+                                  outline
+                                  css={{marginRight: '.25rem'}}
+                                />
+                                {implementation.formatNumberOfStars()}
+                              </div>
+                            </div>
+                          </a>
+                        </Fragment>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {(() => {
+                  const filteredImplementations = filterImplementationsByLanguage(
+                    implementations.unmaintained
+                  );
+
+                  if (filteredImplementations.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <Box css={{padding: '.75rem 1rem'}}>
+                      <strong css={{fontWeight: theme.fontWeights.semibold}}>
+                        Unmaintained implementations:
+                      </strong>{' '}
+                      {filteredImplementations.map((implementation, index) => (
+                        <Fragment key={index}>
+                          <a
+                            href={implementation.repositoryURL}
+                            target="_blank"
+                            css={{'color': 'inherit', ':hover': {color: 'inherit'}}}
                           >
-                            {implementation.formatRepositoryURL()}
-                          </div>
-                        </div>
-
-                        <div css={{width: '150px', lineHeight: 1}}>{implementation.language}</div>
-
-                        <div
-                          css={{
-                            width: '90px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            lineHeight: 1
-                          }}
-                        >
-                          <StarIcon
-                            size={20}
-                            color={theme.colors.text.muted}
-                            outline
-                            css={{marginRight: '.25rem'}}
-                          />
-                          {implementation.formatNumberOfStars()}
-                        </div>
-                      </div>
-                    </a>
-                  </Fragment>
-                ))}
+                            {implementation.formatLibraries()}
+                          </a>
+                          {index < implementations.unmaintained.length - 1 ? ', ' : '.'}
+                        </Fragment>
+                      ))}
+                    </Box>
+                  );
+                })()}
+              </Stack>
             </div>
           </div>
         )}
 
-        {implementations !== undefined && implementations.length === 0 && (
+        {implementations !== undefined && implementations.all.length === 0 && (
           <Box css={{marginTop: '2rem', padding: '1rem'}}>
             There are no implementations in this category.
           </Box>
@@ -271,9 +346,10 @@ export class Home extends Routable(Component) {
     isLast?: boolean;
   }) {
     const theme = useTheme();
+    const styles = useStyles();
 
     return (
-      <this.Main.Link params={{category}} css={hiddenLinkStyle}>
+      <this.Main.Link params={{category}} css={styles.hiddenLink}>
         <div
           css={theme.responsive({
             'padding': ['.75rem 1.25rem', , , '.5rem .75rem'],
@@ -337,11 +413,15 @@ export class Home extends Routable(Component) {
 
   @view() static LanguageOption({language, isCurrent}: {language: string; isCurrent: boolean}) {
     const theme = useTheme();
+    const styles = useStyles();
 
     const params = this.getRouter().getCurrentParams();
 
     return (
-      <this.Main.Link params={{...params, language: language.toLowerCase()}} css={hiddenLinkStyle}>
+      <this.Main.Link
+        params={{...params, language: language.toLowerCase()}}
+        css={styles.hiddenLink}
+      >
         <div
           css={{
             'marginTop': '.5rem',

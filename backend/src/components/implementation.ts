@@ -7,6 +7,7 @@ import {Entity} from './entity';
 import {WithOwner} from './with-owner';
 import type {GitHub} from './github';
 import type {Mailer} from './mailer';
+import type {JWT} from './jwt';
 
 const {optional, maxLength, rangeLength, match, anyOf, integer, positive} = validators;
 
@@ -30,6 +31,10 @@ export type RepositoryStatus = typeof REPOSITORY_STATUSES[number];
 
 const MAXIMUM_REVIEW_DURATION = 5 * 60 * 1000; // 5 minutes
 
+const MAXIMUM_UNMAINTAINED_ISSUE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+const ADMIN_TOKEN_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 @expose({
   get: {call: true},
   find: {call: true},
@@ -46,6 +51,7 @@ export class Implementation extends WithOwner(Entity) {
 
   @consume() static GitHub: typeof GitHub;
   @consume() static Mailer: typeof Mailer;
+  @consume() static JWT: typeof JWT;
 
   @expose({get: true, set: ['owner', 'admin']})
   @attribute('string', {
@@ -111,6 +117,12 @@ export class Implementation extends WithOwner(Entity) {
   @attribute() githubData!: any;
 
   @index() @attribute() githubDataFetchedOn?: Date;
+
+  @expose({get: true})
+  @attribute('number?', {validators: [optional([integer(), positive()])]})
+  unmaintainedIssueNumber?: number;
+
+  @expose({get: true}) @attribute('Date?') markedAsUnmaintainedOn?: Date;
 
   @expose({call: 'owner'}) @method() async submit() {
     const {Session, GitHub, Mailer} = this.constructor;
@@ -319,6 +331,173 @@ export class Implementation extends WithOwner(Entity) {
     await this.save({status: true, reviewer: true, reviewStartedOn: true});
   }
 
+  @expose({call: 'user'}) @method() async reportAsUnmaintained(issueNumber: number) {
+    const {Session, GitHub, Mailer, JWT} = this.constructor;
+
+    await Session.user!.load({username: true});
+
+    await this.load({repositoryURL: true});
+
+    const {owner, name} = parseRepositoryURL(this.repositoryURL);
+
+    const issue = await GitHub.fetchIssue({owner, name, number: issueNumber});
+
+    if (issue.isClosed) {
+      throw Object.assign(new Error('Issue closed'), {
+        displayMessage: `The specified issue is closed.`
+      });
+    }
+
+    const implementationURL = `${frontendURL}implementations/${this.id}/edit`;
+
+    const userURL = `https://github.com/${Session.user!.username}`;
+
+    const approvalToken = JWT.generate({
+      operation: 'approve-unmaintained-implementation-report',
+      implementationId: this.id,
+      issueNumber,
+      exp: Math.round((Date.now() + ADMIN_TOKEN_DURATION) / 1000)
+    });
+
+    const approvalURL = `${frontendURL}implementations/${
+      this.id
+    }/approve-unmaintained-report?token=${encodeURIComponent(approvalToken)}`;
+
+    const html = `
+<p>
+The following RealWorld implementation has been reported as unmaintained:
+</p>
+
+<p>
+<a href="${implementationURL}">${implementationURL}</a>
+</p>
+
+<p>
+Reporter:
+</p>
+
+<p>
+<a href="${userURL}">${userURL}</a>
+</p>
+
+<p>
+Issue:
+</p>
+
+<p>
+<a href="${issue.url}">${issue.url}</a>
+</p>
+
+<p>
+Click the following link to approve the report:
+</p>
+
+<p>
+<a href="${approvalURL}">${approvalURL}</a>
+</p>
+`;
+
+    await Mailer.sendMail({
+      subject: 'A RealWorld implementation has been reported as unmaintained',
+      html
+    });
+  }
+
+  @expose({call: 'admin'}) @method() static async approveUnmaintainedReport(token: string) {
+    const {JWT} = this;
+
+    const payload = JWT.verify(token) as
+      | {operation: string; implementationId: string; issueNumber: number}
+      | undefined;
+
+    if (payload === undefined) {
+      throw new Error('Invalid token');
+    }
+
+    if (payload.operation !== 'approve-unmaintained-implementation-report') {
+      throw new Error('Invalid operation');
+    }
+
+    const implementation = await this.get(payload.implementationId, {markedAsUnmaintainedOn: true});
+
+    if (implementation.markedAsUnmaintainedOn !== undefined) {
+      return;
+    }
+
+    implementation.unmaintainedIssueNumber = payload.issueNumber;
+    await implementation.save();
+
+    await implementation.checkMaintenanceStatus();
+  }
+
+  static async checkMaintenanceStatus() {
+    const implementations = await this.find(
+      {unmaintainedIssueNumber: {$notEqual: undefined}},
+      {
+        repositoryURL: true,
+        unmaintainedIssueNumber: true,
+        markedAsUnmaintainedOn: true
+      }
+    );
+
+    for (const implementation of implementations) {
+      try {
+        await implementation.checkMaintenanceStatus();
+      } catch (error) {
+        console.error(
+          `An error occurred while checking the maintenance status of the implementation '${implementation.repositoryURL}' (${error.message})`
+        );
+      }
+    }
+  }
+
+  async checkMaintenanceStatus() {
+    const {GitHub} = this.constructor;
+
+    await this.load({
+      repositoryURL: true,
+      unmaintainedIssueNumber: true,
+      markedAsUnmaintainedOn: true
+    });
+
+    if (this.unmaintainedIssueNumber === undefined) {
+      return;
+    }
+
+    if (this.markedAsUnmaintainedOn !== undefined) {
+      return;
+    }
+
+    const {owner, name} = parseRepositoryURL(this.repositoryURL);
+
+    const issue = await GitHub.fetchIssue({owner, name, number: this.unmaintainedIssueNumber});
+
+    if (issue.isClosed) {
+      this.unmaintainedIssueNumber = undefined;
+      await this.save();
+
+      console.log(`The unmaintained issue '${issue.url}' has been closed (id: '${this.id}')`);
+
+      return;
+    }
+
+    if (Date.now() - issue.createdAt.valueOf() > MAXIMUM_UNMAINTAINED_ISSUE_DURATION) {
+      this.unmaintainedIssueNumber = undefined;
+      this.markedAsUnmaintainedOn = new Date();
+      await this.save();
+
+      console.log(
+        `The implementation '${this.repositoryURL}' has been marked as unmaintained (id: '${this.id}')`
+      );
+
+      return;
+    }
+
+    console.log(
+      `The unmaintained issue '${issue.url}' has been successfully checked (id: '${this.id}')`
+    );
+  }
+
   static async refreshGitHubData({limit}: {limit?: number} = {}) {
     const implementations = await this.find(
       {},
@@ -355,7 +534,9 @@ export class Implementation extends WithOwner(Entity) {
         this.repositoryStatus = 'available';
       }
 
-      console.log(`The implementation '${this.repositoryURL}' has been successfully refreshed`);
+      console.log(
+        `The implementation '${this.repositoryURL}' has been successfully refreshed (id: '${this.id}')`
+      );
     } catch (error) {
       if (error.code === 'REPOSITORY_NOT_FOUND') {
         this.repositoryStatus = 'missing';

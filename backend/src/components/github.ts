@@ -70,6 +70,29 @@ export class GitHub extends Component {
     return {ownerId, numberOfStars, isArchived, hasIssues, githubData};
   }
 
+  static async fetchIssue({owner, name, number}: {owner: string; name: string; number: number}) {
+    let data: any;
+
+    try {
+      data = await this.fetch(`repos/${owner}/${name}/issues/${String(number)}`);
+    } catch (error) {
+      if (error.status === 404) {
+        throw Object.assign(new Error('Issue not found'), {
+          displayMessage: `The specified issue doesn't exist.`
+        });
+      }
+
+      throw error;
+    }
+
+    const {title, state, html_url: url, created_at: createdAtString} = data;
+
+    const isClosed = state === 'closed';
+    const createdAt = new Date(createdAtString);
+
+    return {number, title, isClosed, url, createdAt};
+  }
+
   static async countPendingIssues({owner, name}: {owner: string; name: string}) {
     let issues: any[] = [];
 
